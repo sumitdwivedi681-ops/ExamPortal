@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Dashboard</title>
+    <link rel="stylesheet" href="dashboard.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+</head>
+<body>
+
+<div class="sidebar">
+    <h2><i class="fas fa-user-graduate"></i> Dashboard</h2>
+    <ul>
+        <li class="active" onclick="goHome()"><i class="fas fa-home"></i> Home</li>
+        <li onclick="goCourses()"><i class="fas fa-book"></i> Courses</li>
+        <li onclick="startTest()"><i class="fas fa-pen"></i> Start Test</li>
+        <li onclick="goResult()"><i class="fas fa-chart-line"></i> Results</li>
+        <li id="logout"><i class="fas fa-sign-out-alt"></i> Logout</li>
+    </ul>
+</div>
+
+<div class="content">
+    <header>
+        <h1>Welcome, <span id="studentName"></span> 👋</h1>
+        <p class="sub-heading">Choose a course below and start learning smartly</p>
+    </header>
+
+    <section class="course-section">
+        <h2>Available Courses</h2>
+        <div class="course-container">
+
+            <div class="course-card red">
+                <h3>Data Structures & Algorithms</h3>
+                <p>Learn logic building & problem solving concepts.</p>
+                <button data-course="Data Structures & Algorithms">Start Test</button>
+            </div>
+
+            <div class="course-card blue">
+                <h3>Operating System</h3>
+                <p>Study scheduling, memory, threads & architecture.</p>
+                <button data-course="Operating System">Start Test</button>
+            </div>
+
+            <div class="course-card green">
+                <h3>DBMS</h3>
+                <p>Database design, SQL queries & normalization.</p>
+                <button data-course="DBMS">Start Test</button>
+            </div>
+
+            <div class="course-card yellow">
+                <h3>Computer Networks</h3>
+                <p>Communication, protocols, routing & security.</p>
+                <button data-course="Computer Networks">Start Test</button>
+            </div>
+
+            <div class="course-card purple">
+                <h3>Java Programming</h3>
+                <p>OOPs, object lifecycle & real world applications.</p>
+                <button data-course="Java Programming">Start Test</button>
+            </div>
+
+            <div class="course-card pink">
+                <h3>Web Development</h3>
+                <p>HTML, CSS, JS, frameworks & full-stack basics.</p>
+                <button data-course="Web Development">Start Test</button>
+            </div>
+
+            <div class="course-card dark">
+                <h3>Python Programming</h3>
+                <p>Scripting, ML basics & automation concepts.</p>
+                <button data-course="Python Programming">Start Test</button>
+            </div>
+
+            <div class="course-card sky">
+                <h3>Cloud Computing</h3>
+                <p>AWS, Azure, virtualization & cloud deployment.</p>
+                <button data-course="Cloud Computing">Start Test</button>
+            </div>
+
+        </div>
+    </section>
+</div>
+
+<script src="dashboard.js"></script>
+</body>
+</html>

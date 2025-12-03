@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Test Page</title>
+  <style>
+    body { font-family: Arial, sans-serif; background:#f5f5f5; padding:20px; }
+    .container { max-width:800px; margin:auto; background:white; padding:20px; border-radius:10px; box-shadow:0 0 10px rgba(0,0,0,0.1);}  
+    h2 { text-align:center; }
+    .question-box { margin-top:20px; padding:15px; border:1px solid #ccc; border-radius:8px; }
+    .btn { padding:10px 20px; background:#007bff; color:white; border:none; border-radius:5px; cursor:pointer; margin-top:10px; }
+    .btn:hover { background:#0056b3; }
+    .option { margin:5px 0; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h2>Online Test</h2>
+  <select id="subjectSelect">
+    <option value="">Select Subject</option>
+    <option value="html">HTML</option>
+    <option value="css">CSS</option>
+    <option value="js">JavaScript</option>
+  </select>
+  <button class="btn" onclick="loadQuestions()">Start Test</button>
+
+  <div id="questionArea"></div>
+</div>
+
+<script>
+async function loadQuestions() {
+  const subject = document.getElementById('subjectSelect').value;
+  if (!subject) return alert("Please select a subject");
+
+  try {
+    const res = await fetch(`http://localhost:5000/api/questions/${subject}`);
+    const data = await res.json();
+
+    let qHTML = "";
+    data.forEach((q, index) => {
+      qHTML += `
+        <div class='question-box'>
+          <h3>Q${index+1}. ${q.question}</h3>
+          ${q.options.map(opt => `
+            <div class='option'>
+              <input type='radio' name='q${index}' value='${opt}' /> ${opt}
+            </div>
+          `).join('')}
+        </div>
+      `;
+    });
+
+    document.getElementById('questionArea').innerHTML = qHTML + `
+      <button class='btn' onclick='submitTest(${data.length})'>Submit Test</button>
+    `;
+
+  } catch (err) {
+    console.error(err);
+    alert("Error loading questions");
+  }
+}
+
+function submitTest(total) {
+  alert("Test Submitted! Answers Saved.");
+}
+</script>
+
+</body>
+</html>
