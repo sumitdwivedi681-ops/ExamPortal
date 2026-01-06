@@ -1,0 +1,135 @@
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    font-family:'Poppins',sans-serif;
+}
+
+body{
+    display:flex;
+    background:#f4f7ff;
+}
+
+/* SIDEBAR */
+.sidebar{
+    width:260px;
+    background:#0b2545;
+    color:#fff;
+    padding:25px;
+    height:100vh;
+    position:fixed;
+}
+
+.sidebar h2{
+    margin-bottom:30px;
+}
+
+.sidebar ul{
+    list-style:none;
+}
+
+.sidebar li{
+    padding:14px;
+    margin-bottom:12px;
+    cursor:pointer;
+    border-radius:10px;
+    transition:.3s;
+}
+
+.sidebar li:hover,
+.sidebar .active{
+    background:#ffcc00;
+    color:#000;
+}
+
+/* CONTENT */
+.content{
+    margin-left:260px;
+    padding:30px;
+    width:calc(100% - 260px);
+}
+
+header h1{
+    font-size:38px;
+    color:#0b2545;
+}
+
+.sub-heading{
+    margin-top:6px;
+    font-size:18px;
+    opacity:.75;
+}
+
+/* COURSES */
+.course-section{
+    margin-top:40px;
+}
+
+.course-section h2{
+    font-size:28px;
+    margin-bottom:25px;
+    color:#0b2545;
+}
+
+.course-container{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
+    gap:25px;
+}
+
+/* CARD */
+.course-card{
+    padding:25px;
+    border-radius:20px;
+    color:#fff;
+    text-align:center;
+    transition:.4s;
+    animation:slideUp .8s ease;
+}
+
+.course-card i{
+    font-size:40px;
+    margin-bottom:12px;
+}
+
+.course-card:hover{
+    transform:translateY(-10px) scale(1.02);
+}
+
+.course-card button{
+    margin-top:15px;
+    padding:10px 28px;
+    border:none;
+    border-radius:10px;
+    font-size:16px;
+    cursor:pointer;
+}
+
+/* COLORS */
+.red{background:#ff4e4e;}
+.blue{background:#1e88e5;}
+.green{background:#43a047;}
+.yellow{background:#fbc02d;color:#000;}
+.purple{background:#6a1b9a;}
+.pink{background:#d81b60;}
+.dark{background:#263238;}
+.sky{background:#00acc1;}
+.teal{background:#00897b;}
+.orange{background:#fb8c00;}
+.indigo{background:#3949ab;}
+.brown{background:#6d4c41;}
+
+/* ANIMATION */
+@keyframes slideUp{
+    from{opacity:0;transform:translateY(40px);}
+    to{opacity:1;transform:translateY(0);}
+}
+
+.fade-in{
+    animation:fade .9s ease;
+}
+
+@keyframes fade{
+    from{opacity:0;}
+    to{opacity:1;}
+}

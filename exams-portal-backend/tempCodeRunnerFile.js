@@ -1,0 +1,1 @@
+alert(`Test Submitted!\nScore: ${score}/${questions.length}`);

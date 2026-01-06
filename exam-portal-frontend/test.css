@@ -1,0 +1,104 @@
+body {
+  font-family: 'Arial', sans-serif;
+  background: #f4f7f9;
+  margin: 0;
+  padding: 0;
+}
+
+.container {
+  max-width: 800px;
+  margin: 50px auto;
+  padding: 25px;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+}
+
+#course-title {
+  text-align: center;
+  color: #333;
+}
+
+#loader {
+  text-align: center;
+  color: #666;
+  font-size: 18px;
+}
+
+#question-wrap {
+  margin-top: 30px;
+}
+
+#question-text {
+  font-size: 20px;
+  margin-bottom: 20px;
+  color: #333;
+}
+
+#options label {
+  display: block;
+  background: #f0f4f8;
+  margin: 8px 0;
+  padding: 12px 15px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+#options input {
+  margin-right: 10px;
+}
+
+#options label:hover {
+  background: #d0e6ff;
+}
+
+.controls, #submitBtn {
+  margin-top: 20px;
+  text-align: center;
+}
+
+button {
+  padding: 12px 25px;
+  font-size: 16px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: 0.3s;
+  margin: 5px;
+}
+
+#prevBtn {
+  background: #ccc;
+  color: #333;
+}
+
+#nextBtn {
+  background: #4caf50;
+  color: #fff;
+}
+
+#submitBtn {
+  background: #2196f3;
+  color: #fff;
+}
+
+button:hover {
+  opacity: 0.9;
+}
+
+@media (max-width: 600px) {
+  .container {
+    margin: 20px;
+    padding: 15px;
+  }
+
+  #question-text {
+    font-size: 18px;
+  }
+
+  button {
+    width: 100%;
+    margin: 8px 0;
+  }
+}

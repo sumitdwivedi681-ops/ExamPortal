@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Test Portal</title>
+    <link rel="stylesheet" href="index.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg">
+        <div class="container">
+             <a class="navbar-brand" href="#"><i class="fas fa-graduation-cap logo-icon"></i>Exams Portal</a>
+                <div class="collapse navbar-collapse">
+                    <ul class="navbar-nav ms-auto">
+                    <li class="nav-item"><a class="nav-link" href="#login">Login</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#register">Register</a></li>
+                    </ul>
+                </div>
+        </div>
+    </nav>
+<section class="hero">
+    <div class="container">
+        <h1>Online Test System for Students</h1>
+        <p class="lead mt-3">Register, Login & Start Learning With Smart Online Exams</p>
+    </div>
+</section>
+    <div class="container my-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+
+            <div class="card p-4">
+
+                <!-- TAB BUTTONS -->
+                <div class="tab-buttons mb-4">
+                    <button class="tab-btn active" onclick="showTab('registerTab')">Register</button>
+                    <button class="tab-btn" onclick="showTab('loginTab')">Login</button>
+                </div>
+
+                <!-- REGISTER TAB -->
+                <div id="registerTab" class="tab-content active">
+                    <h3 class="text-center mb-1 fw-bold">Student Registration</h3>
+                    <p class="text-center text-muted mb-4">Create your official student account</p>
+
+                    <form id="registerForm" class="official-form">
+
+                        <div class="input-group mb-3">
+                            <span class="input-group-text"><i class="fa fa-user"></i></span>
+                            <input type="text" id="full_name" class="form-control" placeholder="Full Name" required>
+                        </div>
+
+                        <div class="input-group mb-3">
+                            <span class="input-group-text"><i class="fa fa-envelope"></i></span>
+                            <input type="email" id="register_email" class="form-control" placeholder="Email Address" required>
+                        </div>
+
+                        <div class="input-group mb-3">
+                            <span class="input-group-text"><i class="fa fa-lock"></i></span>
+                            <input type="password" id="register_password" class="form-control" placeholder="Create Password" required>
+                        </div>
+
+                        <div class="input-group mb-4">
+                            <span class="input-group-text"><i class="fa fa-book"></i></span>
+                            <select id="course" class="form-control" required>
+                                <option value="">Select Course</option>
+                                <option>BCA</option>
+                                <option>BBA</option>
+                                <option>B.Tech</option>
+                                <option>MCA</option>
+                            </select>
+                        </div>
+
+                        <button class="btn btn-primary w-100">Create Account</button>
+                    </form>
+                </div>
+
+                <!-- LOGIN TAB -->
+                <div id="loginTab" class="tab-content">
+                    <h3 class="text-center mb-1 fw-bold">Student Login</h3>
+                    <p class="text-center text-muted mb-4">Login using your registered email</p>
+
+                    <form id="loginForm" class="official-form">
+
+                        <div class="input-group mb-3">
+                            <span class="input-group-text"><i class="fa fa-envelope"></i></span>
+                            <input type="email" id="login-email" class="form-control" placeholder="Registered Email" required>
+                        </div>
+
+                        <div class="input-group mb-4">
+                            <span class="input-group-text"><i class="fa fa-lock"></i></span>
+                            <input type="password" id="login-password" class="form-control" placeholder="Password" required>
+                        </div>
+
+                        <button class="btn btn-success w-100">Login Securely</button>
+                    </form>
+                </div>
+
+            </div>
+
+        </div>
+    </div>
+</div>
+
+
+<footer>
+  <p>© 2025 Student Online Test Portal</p>
+</footer>
+<div id="successPopup" class="popup-container">
+    <div class="popup-box">
+        <h2 id="popupText">Successfully!</h2>
+        <button id="popupBtn">OK</button>
+    </div>
+</div>
+<script src="index.js"></script>
+</body>
+</html>
