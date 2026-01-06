@@ -9,22 +9,19 @@ buttons.forEach(btn=>{
         btn.disabled = true;
         btn.innerText = "Login Required";
     }
-
-    btn.addEventListener("click",()=>{
+    btn.onclick = ()=>{
         const course = btn.dataset.course;
         window.location.href = `test.html?course=${encodeURIComponent(course)}`;
-    });
+    }
 });
 
-document.getElementById("logout").onclick = ()=>{
+document.getElementById("logout").onclick=()=>{
     localStorage.removeItem("loggedUser");
-    window.location.href = "index.html";
+    window.location.href="index.html";
 };
 
-function scrollToCourses(){
-    document.querySelector(".course-section").scrollIntoView({behavior:'smooth'});
+function gosubject(){
+    document.querySelector(".course-section").scrollIntoView({behavior:"smooth"});
 }
-
-function goResult(){
-    window.location.href="result.html";
-}
+function goResult(){ window.location.href="result.html"; }
+function goToSubjects(){ window.location.href="subject.html"; }

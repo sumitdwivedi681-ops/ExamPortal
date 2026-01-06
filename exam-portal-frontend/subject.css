@@ -1,0 +1,119 @@
+body {
+    font-family: "Poppins", sans-serif;
+    background: #eef3ff;
+    margin: 0;
+    padding: 0;
+}
+
+.container {
+    max-width: 1300px;
+    margin: 40px auto;
+    padding: 20px;
+}
+
+header {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+header h1 {
+    font-size: 32px;
+    color: #002b5c;
+}
+
+header p {
+    font-size: 18px;
+    color: #555;
+}
+
+.subjects-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 25px;
+}
+
+.subject-card {
+    padding: 20px;
+    border-radius: 15px;
+    color: #fff;
+    transition: transform 0.3s, box-shadow 0.3s;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    min-height: 260px;
+}
+
+.subject-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+}
+
+.subject-card i {
+    font-size: 40px;
+    margin-bottom: 15px;
+}
+
+.subject-card h3 {
+    font-size: 20px;
+    margin-bottom: 10px;
+}
+
+.subject-card p {
+    font-size: 14px;
+    line-height: 1.4;
+    flex-grow: 1;
+}
+
+.card-buttons {
+    display: flex;
+    gap: 10px;
+    margin-top: 15px;
+}
+
+.card-buttons button {
+    flex: 1;
+    padding: 10px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 500;
+    background: #fff;
+    color: #000;
+    transition: 0.3s;
+}
+
+.card-buttons button:hover {
+    background: #ffdd00;
+    color: #000;
+}
+
+.card-buttons a {
+    flex: 1;
+    padding: 10px;
+    border-radius: 8px;
+    background: rgba(255,255,255,0.2);
+    color: #fff;
+    text-decoration: none;
+    font-weight: 500;
+    text-align: center;
+    transition: 0.3s;
+}
+
+.card-buttons a:hover {
+    background: #fff;
+    color: #000;
+}
+
+/* Card Colors */
+.red { background: #ff4e4e; }
+.blue { background: #1e88e5; }
+.green { background: #43a047; }
+.yellow { background: #fbc02d; color: #000; }
+.purple { background: #6a1b9a; }
+.sky { background: #00acc1; }
+.orange { background: #f57c00; }
+.indigo { background: #3f51b5; }
+.teal { background: #009688; }
+.dark { background: #263238; }
+.brown { background: #6d4c41; }
+.pink { background: #d81b60; }

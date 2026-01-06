@@ -10,113 +10,55 @@
 </head>
 <body>
 
-<!-- SIDEBAR -->
 <div class="sidebar">
     <h2><i class="fas fa-user-graduate"></i> Student Panel</h2>
     <ul>
-        <li class="active"><i class="fas fa-home"></i> Home</li>
-        <li onclick="scrollToCourses()"><i class="fas fa-book"></i> Courses</li>
-        <li onclick="goResult()"><i class="fas fa-chart-line"></i> Results</li>
+        <li class="active"><i class="fas fa-home"></i> Dashboard</li>
+        <li onclick="goToSubjects()"><i class="fas fa-book"></i> Subjects</li>
+        <li onclick="goResult()"><i class="fas fa-chart-bar"></i> Results</li>
         <li id="logout"><i class="fas fa-sign-out-alt"></i> Logout</li>
     </ul>
 </div>
 
-<!-- CONTENT -->
 <div class="content">
-    <header class="fade-in">
+    <header class="fade">
         <h1>Welcome, <span id="studentName"></span> 👋</h1>
-        <p class="sub-heading">Select a subject and start your assessment</p>
+        <p class="sub">Choose a subject or programming language to start test</p>
     </header>
 
     <section class="course-section">
-        <h2 class="fade-in">Available Subjects</h2>
+        <h2>Subjects & Programming Languages</h2>
 
         <div class="course-container">
 
-            <!-- CARD -->
-            <div class="course-card red">
-                <i class="fas fa-code"></i>
-                <h3>Data Structures & Algorithms</h3>
-                <p>Problem solving & logical thinking.</p>
-                <button data-course="Data Structures & Algorithms">Start Test</button>
-            </div>
+            <!-- CORE SUBJECTS -->
+            <div class="course-card red"><i class="fas fa-code"></i><h3>DSA</h3><button data-course="Data Structures & Algorithms">Start Test</button></div>
+            <div class="course-card blue"><i class="fas fa-desktop"></i><h3>Operating System</h3><button data-course="Operating System">Start Test</button></div>
+            <div class="course-card green"><i class="fas fa-database"></i><h3>DBMS</h3><button data-course="DBMS">Start Test</button></div>
+            <div class="course-card yellow"><i class="fas fa-network-wired"></i><h3>Computer Networks</h3><button data-course="Computer Networks">Start Test</button></div>
+            <div class="course-card purple"><i class="fas fa-project-diagram"></i><h3>Software Engineering</h3><button data-course="Software Engineering">Start Test</button></div>
+            <div class="course-card sky"><i class="fas fa-cloud"></i><h3>Cloud Computing</h3><button data-course="Cloud Computing">Start Test</button></div>
+            <div class="course-card orange"><i class="fas fa-shield-alt"></i><h3>Cyber Security</h3><button data-course="Cyber Security">Start Test</button></div>
+            <div class="course-card indigo"><i class="fas fa-robot"></i><h3>Artificial Intelligence</h3><button data-course="Artificial Intelligence">Start Test</button></div>
+            <div class="course-card teal"><i class="fas fa-brain"></i><h3>Machine Learning</h3><button data-course="Machine Learning">Start Test</button></div>
 
-            <div class="course-card blue">
-                <i class="fas fa-desktop"></i>
-                <h3>Operating System</h3>
-                <p>Process, memory & scheduling.</p>
-                <button data-course="Operating System">Start Test</button>
-            </div>
+            <!-- PROGRAMMING LANGUAGES -->
+            <div class="course-card dark"><i class="fas fa-c"></i><h3>C Programming</h3><button data-course="C Programming">Start Test</button></div>
+            <div class="course-card brown"><i class="fas fa-code"></i><h3>C++ Programming</h3><button data-course="C++ Programming">Start Test</button></div>
+            <div class="course-card pink"><i class="fab fa-java"></i><h3>Java Programming</h3><button data-course="Java Programming">Start Test</button></div>
+            <div class="course-card sky"><i class="fab fa-python"></i><h3>Python Programming</h3><button data-course="Python Programming">Start Test</button></div>
+            <div class="course-card yellow"><i class="fab fa-js"></i><h3>JavaScript</h3><button data-course="JavaScript">Start Test</button></div>
+            <div class="course-card purple"><i class="fab fa-php"></i><h3>PHP</h3><button data-course="PHP">Start Test</button></div>
+            <div class="course-card blue"><i class="fab fa-microsoft"></i><h3>C# Programming</h3><button data-course="C# Programming">Start Test</button></div>
+            <div class="course-card teal"><i class="fas fa-code"></i><h3>Go Programming</h3><button data-course="Go Programming">Start Test</button></div>
+            <div class="course-card orange"><i class="fab fa-android"></i><h3>Kotlin</h3><button data-course="Kotlin Programming">Start Test</button></div>
+            <div class="course-card indigo"><i class="fab fa-apple"></i><h3>Swift Programming</h3><button data-course="Swift Programming">Start Test</button></div>
+            <div class="course-card dark"><i class="fas fa-terminal"></i><h3>Rust</h3><button data-course="Rust Programming">Start Test</button></div>
 
-            <div class="course-card green">
-                <i class="fas fa-database"></i>
-                <h3>DBMS</h3>
-                <p>SQL, normalization & transactions.</p>
-                <button data-course="DBMS">Start Test</button>
-            </div>
-
-            <div class="course-card yellow">
-                <i class="fas fa-network-wired"></i>
-                <h3>Computer Networks</h3>
-                <p>Protocols & data communication.</p>
-                <button data-course="Computer Networks">Start Test</button>
-            </div>
-
-            <div class="course-card purple">
-                <i class="fab fa-java"></i>
-                <h3>Java Programming</h3>
-                <p>OOPs & enterprise programming.</p>
-                <button data-course="Java Programming">Start Test</button>
-            </div>
-
-            <div class="course-card dark">
-                <i class="fab fa-python"></i>
-                <h3>Python Programming</h3>
-                <p>Scripting & automation.</p>
-                <button data-course="Python Programming">Start Test</button>
-            </div>
-
-            <div class="course-card pink">
-                <i class="fas fa-globe"></i>
-                <h3>Web Development</h3>
-                <p>HTML, CSS, JS & backend.</p>
-                <button data-course="Web Development">Start Test</button>
-            </div>
-
-            <div class="course-card sky">
-                <i class="fas fa-cloud"></i>
-                <h3>Cloud Computing</h3>
-                <p>AWS, Azure & DevOps basics.</p>
-                <button data-course="Cloud Computing">Start Test</button>
-            </div>
-
-            <div class="course-card teal">
-                <i class="fas fa-project-diagram"></i>
-                <h3>Software Engineering</h3>
-                <p>SDLC, models & testing.</p>
-                <button data-course="Software Engineering">Start Test</button>
-            </div>
-
-            <div class="course-card orange">
-                <i class="fas fa-shield-alt"></i>
-                <h3>Cyber Security</h3>
-                <p>Threats, attacks & defense.</p>
-                <button data-course="Cyber Security">Start Test</button>
-            </div>
-
-            <div class="course-card indigo">
-                <i class="fas fa-robot"></i>
-                <h3>Artificial Intelligence</h3>
-                <p>Intelligent systems & logic.</p>
-                <button data-course="Artificial Intelligence">Start Test</button>
-            </div>
-
-            <div class="course-card brown">
-                <i class="fas fa-brain"></i>
-                <h3>Machine Learning</h3>
-                <p>Models & prediction systems.</p>
-                <button data-course="Machine Learning">Start Test</button>
-            </div>
+            <!-- WEB / OTHER -->
+            <div class="course-card green"><i class="fas fa-globe"></i><h3>Web Development</h3><button data-course="Web Development">Start Test</button></div>
+            <div class="course-card blue"><i class="fas fa-tools"></i><h3>DevOps</h3><button data-course="DevOps">Start Test</button></div>
+            <div class="course-card purple"><i class="fas fa-chart-line"></i><h3>Data Science</h3><button data-course="Data Science">Start Test</button></div>
 
         </div>
     </section>
