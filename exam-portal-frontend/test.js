@@ -11,7 +11,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   let questions = [];
   let currentIndex = 0;
-  let answers = {}; // { questionId: "A" }
+  let answers = {}; 
 
   const student = JSON.parse(localStorage.getItem("loggedUser"));
   if (!student) {
@@ -27,7 +27,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   // Fetch questions
   try {
     const res = await fetch(
-      `http://localhost:5000/get-questions?course=${encodeURIComponent(course)}`
+      `https://examportal-backend-0zjj.onrender.com/get-questions?course=${encodeURIComponent(course)}`
     );
 
     questions = await res.json();
@@ -123,7 +123,7 @@ questions.forEach(q => {
 
     // ✅ SAVE RESULT TO DATABASE
     try {
-      const res = await fetch("http://localhost:5000/save-result", {
+      const res = await fetch("https://examportal-backend-0zjj.onrender.com/save-result", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

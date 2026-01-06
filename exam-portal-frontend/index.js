@@ -47,7 +47,7 @@ registerForm.addEventListener("submit", async (e) => {
     }
 
     try {
-        const response = await fetch("http://localhost:5000/register", {
+        const response = await fetch("https://examportal-backend-0zjj.onrender.com/register", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ full_name, email, password, course })
@@ -73,7 +73,7 @@ loginForm.addEventListener("submit", async (e) => {
     const password = document.getElementById("login-password").value;
 
     try {
-        const response = await fetch("http://localhost:5000/login", {
+        const response = await fetch("https://examportal-backend-0zjj.onrender.com/login", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ email, password })
