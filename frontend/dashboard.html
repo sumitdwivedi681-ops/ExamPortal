@@ -3,20 +3,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Elite Dashboard | Student Portal</title>
+    <title>Elite Dashboard | Analytics</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=Orbitron:wght@700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root { --primary: #6366f1; --dark: #0f172a; --bg: #f8fafc; }
         body { background-color: var(--bg); font-family: 'Outfit', sans-serif; }
         .hero-section { background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); color: white; padding: 60px 0; border-radius: 0 0 50px 50px; margin-bottom: 40px; }
         .nav-pills .nav-link { color: rgba(255,255,255,0.7); background: rgba(255,255,255,0.1); margin: 0 10px; border-radius: 12px; font-weight: 600; transition: 0.3s; }
         .nav-pills .nav-link.active { background: white; color: var(--primary); box-shadow: 0 10px 15px rgba(0,0,0,0.1); }
-        .glass-card { background: white; border-radius: 24px; padding: 30px; border: none; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05); }
+        .glass-card { background: white; border-radius: 24px; padding: 30px; border: none; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05); height: 100%; }
+        
+        /* Digital Display Style */
+        .digital-num { font-family: 'Orbitron', sans-serif; font-size: 3rem; color: var(--primary); text-shadow: 0 0 10px rgba(99, 102, 241, 0.2); }
+        .digital-label { text-transform: uppercase; letter-spacing: 2px; font-weight: 700; color: #94a3b8; font-size: 0.8rem; }
+
         .profile-img { width: 120px; height: 120px; border-radius: 50%; object-fit: cover; border: 4px solid white; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
         footer { background: var(--dark); color: #94a3b8; padding: 60px 0; margin-top: 80px; }
-        .footer-brand { font-size: 1.5rem; font-weight: 700; color: white; }
+        .chart-container { position: relative; height: 300px; width: 100%; }
     </style>
 </head>
 <body>
@@ -27,7 +33,7 @@
         <div class="mb-4">
             <img src="https://ui-avatars.com/api/?name=Student&background=random" id="topProfileImg" class="profile-img mb-3" alt="Profile">
             <h2 class="fw-bold">Welcome, <span id="studentName">Student</span></h2>
-            <p class="opacity-75">Your journey to excellence starts here.</p>
+            <p class="opacity-75">MCA Student | Elite Member</p>
         </div>
         
         <ul class="nav nav-pills justify-content-center" id="pills-tab" role="tablist">
@@ -47,23 +53,33 @@
 <div class="container">
     <!-- Performance Section -->
     <div id="section-performance" class="dashboard-section">
-        <div class="row g-4 text-center">
-            <div class="col-md-4">
+        <div class="row g-4 mb-5">
+            <div class="col-md-6">
                 <div class="glass-card">
-                    <div class="text-muted small fw-bold">TOTAL EXAMS</div>
-                    <h2 class="fw-bold text-primary mt-2" id="total-exams">0</h2>
+                    <h5 class="fw-bold mb-4">Subject Wise Analysis</h5>
+                    <div class="chart-container">
+                        <canvas id="performanceChart"></canvas>
+                    </div>
                 </div>
             </div>
-            <div class="col-md-4">
-                <div class="glass-card">
-                    <div class="text-muted small fw-bold">AVERAGE SCORE</div>
-                    <h2 class="fw-bold text-success mt-2" id="avg-score">0%</h2>
+            <div class="col-md-3">
+                <div class="glass-card text-center d-flex flex-column justify-content-center">
+                    <div class="digital-label">Total Exams</div>
+                    <div class="digital-num" id="total-exams">0</div>
                 </div>
             </div>
-            <div class="col-md-4">
-                <a href="subject.html" class="glass-card d-block text-decoration-none h-100 py-4" style="background: var(--primary); color: white;">
-                    <i class="fas fa-play-circle mb-2 fs-3"></i>
-                    <div class="fw-bold">START NEW TEST</div>
+            <div class="col-md-3">
+                <div class="glass-card text-center d-flex flex-column justify-content-center">
+                    <div class="digital-label">Avg Accuracy</div>
+                    <div class="digital-num" id="avg-score">0%</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row">
+            <div class="col-12">
+                <a href="subject.html" class="btn btn-primary btn-lg w-100 rounded-4 py-3 fw-bold shadow-lg">
+                    <i class="fas fa-rocket me-2"></i>START NEW PRACTICE TEST
                 </a>
             </div>
         </div>
@@ -118,7 +134,7 @@
                 <p>An intelligent platform created by **Sumit Dwivedi** (MCA Student) for students to practice and master computer science topics with real-time feedback.</p>
             </div>
             <div class="col-md-2 mb-4">
-                <h5 class="fw-bold text-white mb-4">Explore</h5>
+                <h5 class="fw-bold text-white mb-4 text-start">Explore</h5>
                 <a href="subject.html" class="text-decoration-none text-muted d-block mb-2">Start Test</a>
                 <a href="admin.html" class="text-decoration-none text-muted d-block mb-2">Admin Panel</a>
                 <a href="index.html" class="text-decoration-none text-muted d-block mb-2">Home</a>
@@ -129,7 +145,7 @@
                 <a href="mailto:sumitdwivedi681@gmail.com" class="btn btn-primary btn-sm rounded-pill px-4">Send Feedback</a>
             </div>
             <div class="col-md-3 mb-4">
-                <h5 class="fw-bold text-white mb-4">Contact Developer</h5>
+                <h5 class="fw-bold text-white mb-4 text-start">Contact Developer</h5>
                 <p class="mb-1 fw-bold text-white">Sumit Dwivedi</p>
                 <p class="mb-1 text-muted small">MCA Student | Developer</p>
                 <a href="mailto:sumitdwivedi681@gmail.com" class="text-decoration-none text-white">sumitdwivedi681@gmail.com</a>

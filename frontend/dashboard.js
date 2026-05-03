@@ -28,18 +28,12 @@ document.addEventListener("DOMContentLoaded", async () => {
             const data = await res.json();
             if (data.status === "success") {
                 localStorage.setItem("loggedUser", JSON.stringify(data.user));
-                alert("Profile Updated Successfully!");
+                alert("Profile Updated!");
                 location.reload();
             }
         } catch (err) {
             alert("Update failed!");
         }
-    };
-
-    // Logout
-    document.getElementById("logoutBtn").onclick = () => {
-        localStorage.removeItem("loggedUser");
-        window.location.href = "index.html";
     };
 });
 
@@ -73,9 +67,16 @@ async function loadStats(student) {
             totalExamsEl.innerText = results.length;
             let totalPercent = 0;
             
+            const subjectScores = {}; // { course: [percents] }
+
             resultBody.innerHTML = results.map(r => {
                 const percent = ((r.score / r.total) * 100).toFixed(0);
                 totalPercent += parseInt(percent);
+                
+                // Track for chart
+                if(!subjectScores[r.course]) subjectScores[r.course] = [];
+                subjectScores[r.course].push(parseInt(percent));
+
                 const color = percent >= 40 ? 'success' : 'danger';
                 return `
                     <tr>
@@ -86,9 +87,48 @@ async function loadStats(student) {
                     </tr>
                 `;
             }).join('');
-            avgScoreEl.innerText = (totalPercent / results.length).toFixed(1) + "%";
+            
+            avgScoreEl.innerText = (totalPercent / results.length).toFixed(0) + "%";
+
+            // PREPARE CHART
+            const labels = Object.keys(subjectScores);
+            const data = labels.map(l => {
+                const arr = subjectScores[l];
+                return (arr.reduce((a,b) => a+b, 0) / arr.length).toFixed(0);
+            });
+
+            renderChart(labels, data);
         }
     } catch (err) {
         console.error(err);
     }
+}
+
+function renderChart(labels, data) {
+    const ctx = document.getElementById('performanceChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Avg Score %',
+                data: data,
+                backgroundColor: 'rgba(99, 102, 241, 0.6)',
+                borderColor: '#6366f1',
+                borderWidth: 2,
+                borderRadius: 8
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: { beginAtZero: true, max: 100, grid: { display: false } },
+                x: { grid: { display: false } }
+            },
+            plugins: {
+                legend: { display: false }
+            }
+        }
+    });
 }
