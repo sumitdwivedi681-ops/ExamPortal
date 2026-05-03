@@ -30,12 +30,15 @@ document.addEventListener("DOMContentLoaded", async () => {
       `${window.API_URL}/get-questions?course=${encodeURIComponent(course)}`
     );
 
-    questions = await res.json();
+    const allQuestions = await res.json();
 
-    if (!questions || !questions.length) {
+    if (!allQuestions || !allQuestions.length) {
       loader.innerText = "No questions found for this course!";
       return;
     }
+
+    // Shuffle and pick 20
+    questions = allQuestions.sort(() => 0.5 - Math.random()).slice(0, 20);
 
     loader.style.display = "none";
     testArea.style.display = "block";
@@ -113,7 +116,10 @@ document.addEventListener("DOMContentLoaded", async () => {
       }
     });
 
-    // SAVE RESULT
+    // SAVE LOCALLY FOR RESULT PAGE
+    localStorage.setItem("lastResult", JSON.stringify({ score, total: questions.length }));
+
+    // SAVE RESULT TO DB
     try {
       const res = await fetch(`${window.API_URL}/save-result`, {
         method: "POST",
