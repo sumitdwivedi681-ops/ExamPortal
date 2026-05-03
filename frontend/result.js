@@ -20,7 +20,7 @@ document.addEventListener("DOMContentLoaded", () => {
             labels: ['Correct', 'Incorrect'],
             datasets: [{
                 data: [score, wrong],
-                backgroundColor: ['#10b981', 'rgba(255, 255, 255, 0.1)'],
+                backgroundColor: ['#0ea5e9', '#f1f5f9'],
                 borderColor: ['#fff', '#fff'],
                 borderWidth: 2,
                 cutout: '70%'

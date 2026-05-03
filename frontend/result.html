@@ -10,31 +10,30 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body { 
-            background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); 
+            background: linear-gradient(135deg, #e0f2fe 0%, #f0f9ff 100%); 
             font-family: 'Outfit', sans-serif;
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
-            color: white;
+            color: #0f172a;
             padding: 20px;
         }
         .result-card {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(15px);
+            background: white;
             border-radius: 40px;
             padding: 50px;
             width: 100%;
             max-width: 600px;
-            border: 1px solid rgba(255,255,255,0.2);
-            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.4);
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.1);
             text-align: center;
+            border: 1px solid rgba(0,0,0,0.05);
         }
         .digital-score {
             font-family: 'Orbitron', sans-serif;
             font-size: 5rem;
-            color: white;
-            text-shadow: 0 0 20px rgba(255,255,255,0.3);
+            color: #0369a1;
+            text-shadow: 2px 2px 0px rgba(14, 165, 233, 0.1);
             margin: 20px 0;
         }
         .chart-box {
@@ -49,14 +48,19 @@
             text-transform: uppercase;
             letter-spacing: 1px;
             transition: 0.3s;
+            border: none;
         }
+        .btn-dashboard { background: #0ea5e9; color: white; }
+        .btn-dashboard:hover { background: #0284c7; transform: scale(1.03); color: white; }
+        .btn-subject { background: #f0f9ff; color: #0369a1; border: 2px solid #bae6fd !important; }
+        .btn-subject:hover { background: #e0f2fe; }
     </style>
 </head>
 <body>
 
 <div class="result-card">
-    <h1 class="fw-bold mb-1">Test Completed!</h1>
-    <p class="opacity-75 mb-4">Here is your performance summary</p>
+    <h1 class="fw-bold mb-1" style="color: #0f172a;">Test Completed!</h1>
+    <p class="text-muted mb-4">Here is your performance summary</p>
 
     <!-- Digital Display -->
     <div class="digital-score" id="score-display">0/20</div>
@@ -68,10 +72,10 @@
 
     <!-- Controls -->
     <div class="d-grid gap-3 mt-4">
-        <a href="dashboard.html" class="btn btn-light btn-action text-primary shadow-lg">
+        <a href="dashboard.html" class="btn btn-dashboard btn-action shadow-sm">
             <i class="fas fa-th-large me-2"></i>Back to Dashboard
         </a>
-        <a href="subject.html" class="btn btn-outline-light btn-action">
+        <a href="subject.html" class="btn btn-subject btn-action">
             <i class="fas fa-redo me-2"></i>Try Another Subject
         </a>
     </div>
