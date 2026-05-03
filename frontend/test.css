@@ -1,104 +1,120 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap');
+
 body {
-  font-family: 'Arial', sans-serif;
-  background: #f4f7f9;
-  margin: 0;
-  padding: 0;
+    font-family: 'Outfit', sans-serif;
+    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: #1e293b;
 }
 
 .container {
-  max-width: 800px;
-  margin: 50px auto;
-  padding: 25px;
-  background: #fff;
-  border-radius: 12px;
-  box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+    background: white;
+    width: 90%;
+    max-width: 800px;
+    padding: 50px;
+    border-radius: 30px;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.1);
+    position: relative;
+    border: 1px solid rgba(255,255,255,0.3);
 }
 
-#course-title {
-  text-align: center;
-  color: #333;
+h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #0f172a;
+    margin-bottom: 30px;
+    text-align: center;
 }
 
 #loader {
-  text-align: center;
-  color: #666;
-  font-size: 18px;
+    text-align: center;
+    font-weight: 600;
+    color: #6366f1;
 }
 
 #question-wrap {
-  margin-top: 30px;
+    margin-bottom: 40px;
 }
 
 #question-text {
-  font-size: 20px;
-  margin-bottom: 20px;
-  color: #333;
+    font-size: 1.4rem;
+    font-weight: 600;
+    line-height: 1.5;
+    margin-bottom: 25px;
+    color: #334155;
 }
 
-#options label {
-  display: block;
-  background: #f0f4f8;
-  margin: 8px 0;
-  padding: 12px 15px;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: 0.3s;
+#options {
+    display: grid;
+    gap: 15px;
 }
 
-#options input {
-  margin-right: 10px;
+.option-item {
+    background: #f1f5f9;
+    padding: 18px 25px;
+    border-radius: 16px;
+    cursor: pointer;
+    transition: 0.3s;
+    border: 2px solid transparent;
 }
 
-#options label:hover {
-  background: #d0e6ff;
+.option-item:hover {
+    background: #e2e8f0;
+    transform: translateX(10px);
 }
 
-.controls, #submitBtn {
-  margin-top: 20px;
-  text-align: center;
+.option-item label {
+    cursor: pointer;
+    display: block;
+    font-weight: 500;
+    width: 100%;
+}
+
+.option-item input[type="radio"] {
+    margin-right: 15px;
+    transform: scale(1.2);
+    accent-color: #6366f1;
+}
+
+/* Selected state via JS */
+.option-item input[type="radio"]:checked + label {
+    color: #6366f1;
+    font-weight: 700;
+}
+
+.controls {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 40px;
 }
 
 button {
-  padding: 12px 25px;
-  font-size: 16px;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: 0.3s;
-  margin: 5px;
+    padding: 12px 30px;
+    border-radius: 12px;
+    border: none;
+    font-weight: 700;
+    cursor: pointer;
+    transition: 0.3s;
+    text-transform: uppercase;
+    letter-spacing: 1px;
 }
 
-#prevBtn {
-  background: #ccc;
-  color: #333;
-}
+#prevBtn { background: #cbd5e1; color: #475569; }
+#prevBtn:hover { background: #94a3b8; }
 
-#nextBtn {
-  background: #4caf50;
-  color: #fff;
-}
+#nextBtn { background: #6366f1; color: white; }
+#nextBtn:hover { background: #4f46e5; box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4); }
 
-#submitBtn {
-  background: #2196f3;
-  color: #fff;
-}
-
-button:hover {
-  opacity: 0.9;
-}
-
-@media (max-width: 600px) {
-  .container {
-    margin: 20px;
+#submitBtn { 
+    background: #10b981; 
+    color: white; 
+    width: 100%; 
+    margin-top: 30px;
+    font-size: 1.1rem;
     padding: 15px;
-  }
-
-  #question-text {
-    font-size: 18px;
-  }
-
-  button {
-    width: 100%;
-    margin: 8px 0;
-  }
 }
+#submitBtn:hover { background: #059669; transform: scale(1.02); }

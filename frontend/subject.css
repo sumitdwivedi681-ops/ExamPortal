@@ -1,119 +1,138 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap');
+
+:root {
+    --primary: #6366f1;
+    --secondary: #4f46e5;
+    --accent: #f43f5e;
+    --bg: #f8fafc;
+    --card-bg: rgba(255, 255, 255, 0.95);
+}
+
 body {
-    font-family: "Poppins", sans-serif;
-    background: #eef3ff;
+    font-family: 'Outfit', sans-serif;
+    background: linear-gradient(135deg, #eef2ff 0%, #f8fafc 100%);
+    color: #1e293b;
     margin: 0;
-    padding: 0;
+    min-height: 100vh;
 }
 
-.container {
-    max-width: 1300px;
-    margin: 40px auto;
-    padding: 20px;
-}
-
-header {
-    text-align: center;
-    margin-bottom: 30px;
-}
-
-header h1 {
-    font-size: 32px;
-    color: #002b5c;
-}
-
-header p {
-    font-size: 18px;
-    color: #555;
+.navbar-dashboard {
+    background: white;
+    padding: 18px 0;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    position: sticky;
+    top: 0;
+    z-index: 1000;
 }
 
 .subjects-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 25px;
+    gap: 30px;
+    padding: 40px 0;
 }
 
 .subject-card {
-    padding: 20px;
-    border-radius: 15px;
-    color: #fff;
-    transition: transform 0.3s, box-shadow 0.3s;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    min-height: 260px;
+    background: var(--card-bg);
+    border-radius: 24px;
+    padding: 35px;
+    text-align: center;
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
+    position: relative;
+    overflow: hidden;
+}
+
+.subject-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 6px;
+    background: var(--primary);
 }
 
 .subject-card:hover {
-    transform: translateY(-8px);
-    box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+    transform: translateY(-12px);
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
 }
 
 .subject-card i {
-    font-size: 40px;
-    margin-bottom: 15px;
+    font-size: 3rem;
+    margin-bottom: 20px;
+    display: block;
 }
 
 .subject-card h3 {
-    font-size: 20px;
-    margin-bottom: 10px;
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 15px;
+    color: #0f172a;
 }
 
 .subject-card p {
-    font-size: 14px;
-    line-height: 1.4;
-    flex-grow: 1;
+    font-size: 0.95rem;
+    color: #64748b;
+    line-height: 1.6;
+    margin-bottom: 25px;
 }
 
 .card-buttons {
     display: flex;
-    gap: 10px;
-    margin-top: 15px;
+    flex-direction: column;
+    gap: 12px;
 }
 
 .card-buttons button {
-    flex: 1;
-    padding: 10px;
+    width: 100%;
+    padding: 12px;
     border: none;
-    border-radius: 8px;
+    border-radius: 12px;
+    font-weight: 600;
+    background: var(--primary);
+    color: white;
     cursor: pointer;
-    font-weight: 500;
-    background: #fff;
-    color: #000;
     transition: 0.3s;
 }
 
 .card-buttons button:hover {
-    background: #ffdd00;
-    color: #000;
+    background: var(--secondary);
+    transform: scale(1.02);
 }
 
 .card-buttons a {
-    flex: 1;
-    padding: 10px;
-    border-radius: 8px;
-    background: rgba(255,255,255,0.2);
-    color: #fff;
     text-decoration: none;
-    font-weight: 500;
-    text-align: center;
+    font-weight: 600;
+    color: var(--primary);
+    font-size: 0.9rem;
     transition: 0.3s;
 }
 
 .card-buttons a:hover {
-    background: #fff;
-    color: #000;
+    color: var(--secondary);
+    text-decoration: underline;
 }
 
-/* Card Colors */
-.red { background: #ff4e4e; }
-.blue { background: #1e88e5; }
-.green { background: #43a047; }
-.yellow { background: #fbc02d; color: #000; }
-.purple { background: #6a1b9a; }
-.sky { background: #00acc1; }
-.orange { background: #f57c00; }
-.indigo { background: #3f51b5; }
-.teal { background: #009688; }
-.dark { background: #263238; }
-.brown { background: #6d4c41; }
-.pink { background: #d81b60; }
+/* Specific Card Colors */
+.subject-card.red i { color: #f43f5e; }
+.subject-card.red::before { background: #f43f5e; }
+
+.subject-card.blue i { color: #3b82f6; }
+.subject-card.blue::before { background: #3b82f6; }
+
+.subject-card.green i { color: #10b981; }
+.subject-card.green::before { background: #10b981; }
+
+.subject-card.yellow i { color: #f59e0b; }
+.subject-card.yellow::before { background: #f59e0b; }
+
+.subject-card.purple i { color: #8b5cf6; }
+.subject-card.purple::before { background: #8b5cf6; }
+
+.subject-card.sky i { color: #0ea5e9; }
+.subject-card.sky::before { background: #0ea5e9; }
+
+.subject-card.orange i { color: #f97316; }
+.subject-card.orange::before { background: #f97316; }
+
+.subject-card.indigo i { color: #6366f1; }
+.subject-card.indigo::before { background: #6366f1; }
