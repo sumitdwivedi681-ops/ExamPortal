@@ -77,19 +77,38 @@ app.get("/get-questions", async (req, res) => {
   }
 });
 
-// Save Result
+// Save Result (Highest Score Only)
 app.post("/save-result", async (req, res) => {
   try {
     const { email, course, score, total } = req.body;
-    const newResult = new Result({
-      student_email: email,
-      course,
-      score,
-      total
-    });
-    await newResult.save();
-    res.json({ status: "success" });
+    
+    // 1. Check if a result already exists for this student and course
+    const existingResult = await Result.findOne({ student_email: email, course: course });
+
+    if (existingResult) {
+      // 2. Only update if the NEW score is better than the OLD score
+      if (score > existingResult.score) {
+        existingResult.score = score;
+        existingResult.total = total;
+        existingResult.exam_date = Date.now();
+        await existingResult.save();
+        return res.json({ status: "success", message: "New High Score saved!" });
+      } else {
+        return res.json({ status: "success", message: "Previous score was better, kept old record." });
+      }
+    } else {
+      // 3. No existing record, so save this one
+      const newResult = new Result({
+        student_email: email,
+        course,
+        score,
+        total
+      });
+      await newResult.save();
+      res.json({ status: "success", message: "First attempt saved!" });
+    }
   } catch (err) {
+    console.error("Save Result Error:", err);
     res.status(500).json({ error: "Failed to save result" });
   }
 });
