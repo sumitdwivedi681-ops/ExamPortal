@@ -72,7 +72,7 @@ document.getElementById("loginForm").addEventListener("submit", async (e) => {
       popupText.innerText = "Login Successful! Redirecting...";
       popup.style.display = "flex";
       setTimeout(() => {
-        window.location.href = "subject.html";
+        window.location.href = "dashboard.html";
       }, 1500);
     } else {
       popupText.innerText = data.error || "Invalid credentials";
