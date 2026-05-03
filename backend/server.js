@@ -24,6 +24,22 @@ app.use(express.json());
 // Connect Database
 connectDB();
 
+// Admin Settings Schema (Store Password)
+const AdminSchema = new mongoose.Schema({
+  password: { type: String, default: "admin123" }
+});
+const AdminSettings = mongoose.model("AdminSettings", AdminSchema);
+
+// Ensure at least one admin setting exists
+async function initAdmin() {
+  const count = await AdminSettings.countDocuments();
+  if (count === 0) {
+    await new AdminSettings({ password: "admin123" }).save();
+    console.log("Admin password initialized to: admin123");
+  }
+}
+initAdmin();
+
 // Test Route to check if server is live
 app.get("/ping", (req, res) => {
   res.json({ status: "alive", message: "Exam Portal Backend is working!" });
@@ -173,6 +189,38 @@ app.get("/admin/questions", async (req, res) => {
     res.json(questions);
   } catch (err) {
     res.status(500).json({ error: "Failed to fetch questions" });
+  }
+});
+
+// Admin Login (Verify with DB)
+app.post("/admin/login", async (req, res) => {
+  try {
+    const { password } = req.body;
+    const admin = await AdminSettings.findOne();
+    if (admin && admin.password === password) {
+      res.json({ status: "success" });
+    } else {
+      res.status(401).json({ error: "Invalid admin password" });
+    }
+  } catch (err) {
+    res.status(500).json({ error: "Login error" });
+  }
+});
+
+// Update Admin Password
+app.post("/admin/update-password", async (req, res) => {
+  try {
+    const { newPassword } = req.body;
+    const admin = await AdminSettings.findOne();
+    if (admin) {
+      admin.password = newPassword;
+      await admin.save();
+      res.json({ status: "success", message: "Admin password updated!" });
+    } else {
+      res.status(404).json({ error: "Admin settings not found" });
+    }
+  } catch (err) {
+    res.status(500).json({ error: "Update failed" });
   }
 });
 

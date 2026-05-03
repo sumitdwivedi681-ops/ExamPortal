@@ -97,6 +97,9 @@
         <a class="nav-link" href="#" onclick="showTab('questions', this)">
             <i class="fas fa-question-circle"></i> <span>Questions</span>
         </a>
+        <a class="nav-link" href="#" onclick="showTab('settings', this)">
+            <i class="fas fa-cog"></i> <span>Settings</span>
+        </a>
         <div style="margin-top: auto; padding-top: 50px;">
             <hr style="background: rgba(255,255,255,0.1); margin: 20px 15px;">
             <a class="nav-link text-accent" href="index.html">
@@ -147,7 +150,7 @@
     </div>
 
     <!-- Data Section -->
-    <div class="table-card">
+    <div class="table-card" id="data-section">
         <div class="table-responsive">
             <table class="table align-middle">
                 <thead id="table-head">
@@ -157,6 +160,24 @@
                     <!-- Data injected here -->
                 </tbody>
             </table>
+        </div>
+    </div>
+
+    <!-- Settings Section -->
+    <div id="settings-section" class="d-none">
+        <div class="row">
+            <div class="col-md-6">
+                <div class="table-card">
+                    <h4 class="fw-bold mb-4">Admin Security</h4>
+                    <form id="updateAdminPassForm">
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold">NEW ADMIN PASSWORD</label>
+                            <input type="password" id="new-admin-pass" class="form-control form-control-lg rounded-3 border-0 shadow-sm" style="background: #f8fafc;" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-lg w-100 rounded-3 fw-bold">Update Password</button>
+                    </form>
+                </div>
+            </div>
         </div>
     </div>
 </div>
