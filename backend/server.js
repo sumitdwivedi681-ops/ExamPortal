@@ -50,14 +50,18 @@ app.post("/register", async (req, res) => {
 // Login Student
 app.post("/login", async (req, res) => {
   const { email, password } = req.body;
+  console.log(`Login attempt for: ${email}`);
   try {
-    const user = await Student.findOne({ email, password });
+    const user = await Student.findOne({ email: email, password: password });
     if (user) {
+      console.log("Login successful!");
       res.json({ status: "success", user });
     } else {
+      console.log("Login failed: User not found or password mismatch");
       res.status(401).json({ error: "Invalid credentials" });
     }
   } catch (err) {
+    console.error("Login Error:", err);
     res.status(500).json({ error: "Server Error" });
   }
 });
