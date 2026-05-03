@@ -11,7 +11,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   let questions = [];
   let currentIndex = 0;
-  let answers = {}; // { _id: "The Text of Option" }
+  let answers = {}; // { _id: "Selected Text" }
 
   const student = JSON.parse(localStorage.getItem("loggedUser"));
   if (!student) {
@@ -50,41 +50,30 @@ document.addEventListener("DOMContentLoaded", async () => {
   // ---------------- LOAD QUESTION ----------------
   function loadQuestion() {
     const q = questions[currentIndex];
-
     questionText.innerText = `${currentIndex + 1}. ${q.question_title}`;
 
     const selected = answers[q._id];
 
     optionsBox.innerHTML = `
-      <label>
-        <input type="radio" name="option" value="${q.optionA}" ${selected === q.optionA ? "checked" : ""}>
-        A. ${q.optionA}
-      </label><br>
-
-      <label>
-        <input type="radio" name="option" value="${q.optionB}" ${selected === q.optionB ? "checked" : ""}>
-        B. ${q.optionB}
-      </label><br>
-
-      <label>
-        <input type="radio" name="option" value="${q.optionC}" ${selected === q.optionC ? "checked" : ""}>
-        C. ${q.optionC}
-      </label><br>
-
-      <label>
-        <input type="radio" name="option" value="${q.optionD}" ${selected === q.optionD ? "checked" : ""}>
-        D. ${q.optionD}
-      </label>
+      <div class="option-item">
+        <label><input type="radio" name="option" value="${q.optionA}" ${selected === q.optionA ? "checked" : ""}> A. ${q.optionA}</label>
+      </div>
+      <div class="option-item">
+        <label><input type="radio" name="option" value="${q.optionB}" ${selected === q.optionB ? "checked" : ""}> B. ${q.optionB}</label>
+      </div>
+      <div class="option-item">
+        <label><input type="radio" name="option" value="${q.optionC}" ${selected === q.optionC ? "checked" : ""}> C. ${q.optionC}</label>
+      </div>
+      <div class="option-item">
+        <label><input type="radio" name="option" value="${q.optionD}" ${selected === q.optionD ? "checked" : ""}> D. ${q.optionD}</label>
+      </div>
     `;
 
     prevBtn.disabled = currentIndex === 0;
-    nextBtn.style.display =
-      currentIndex === questions.length - 1 ? "none" : "inline-block";
-    submitBtn.style.display =
-      currentIndex === questions.length - 1 ? "inline-block" : "none";
+    nextBtn.style.display = currentIndex === questions.length - 1 ? "none" : "inline-block";
+    submitBtn.style.display = currentIndex === questions.length - 1 ? "inline-block" : "none";
   }
 
-  // ---------------- SAVE ANSWER ----------------
   function saveAnswer() {
     const selected = document.querySelector('input[name="option"]:checked');
     if (selected) {
@@ -92,17 +81,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   }
 
-  nextBtn.onclick = () => {
-    saveAnswer();
-    currentIndex++;
-    loadQuestion();
-  };
-
-  prevBtn.onclick = () => {
-    saveAnswer();
-    currentIndex--;
-    loadQuestion();
-  };
+  nextBtn.onclick = () => { saveAnswer(); currentIndex++; loadQuestion(); };
+  prevBtn.onclick = () => { saveAnswer(); currentIndex--; loadQuestion(); };
 
   // ---------------- SUBMIT TEST ----------------
   submitBtn.onclick = async () => {
@@ -111,9 +91,24 @@ document.addEventListener("DOMContentLoaded", async () => {
     let score = 0;
 
     questions.forEach(q => {
-      const userAns = answers[q._id]; 
-      // Compare the full text of the answer
-      if (userAns && userAns.trim() === q.answer.trim()) {
+      const userSelectedText = (answers[q._id] || "").trim().toLowerCase();
+      const dbCorrectAnswer = (q.answer || "").trim().toLowerCase();
+
+      // Check 1: Direct match (Text vs Text)
+      if (userSelectedText === dbCorrectAnswer) {
+        score++;
+      } 
+      // Check 2: Letter match (e.g. if DB answer is "A" and user picked optionA text)
+      else if (dbCorrectAnswer === "a" && userSelectedText === (q.optionA || "").trim().toLowerCase()) {
+        score++;
+      }
+      else if (dbCorrectAnswer === "b" && userSelectedText === (q.optionB || "").trim().toLowerCase()) {
+        score++;
+      }
+      else if (dbCorrectAnswer === "c" && userSelectedText === (q.optionC || "").trim().toLowerCase()) {
+        score++;
+      }
+      else if (dbCorrectAnswer === "d" && userSelectedText === (q.optionD || "").trim().toLowerCase()) {
         score++;
       }
     });
@@ -137,9 +132,8 @@ document.addEventListener("DOMContentLoaded", async () => {
       } else {
         alert("Submission failed!");
       }
-
     } catch (err) {
-      console.error("Fetch error:", err);
+      console.error("Submit Error:", err);
       alert("Server error while submitting!");
     }
   };
