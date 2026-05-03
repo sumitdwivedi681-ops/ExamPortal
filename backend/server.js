@@ -1,153 +1,106 @@
-require("dotenv").config();
 const express = require("express");
+const mongoose = require("mongoose");
 const cors = require("cors");
-const bcrypt = require("bcryptjs");
+const dotenv = require("dotenv");
 
-const connectDB = require("./config/db");
+dotenv.config();
+
 const Student = require("./config/Student");
 const Question = require("./Question");
 const Result = require("./Result");
+const connectDB = require("./config/db");
 
 const app = express();
 
-/* ================= MIDDLEWARE ================= */
-app.use(cors());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// SUPER OPEN CORS FOR PRODUCTION
+app.use(cors({
+  origin: "*",
+  methods: ["GET", "POST", "DELETE", "PUT"],
+  credentials: true
+}));
 
-/* ================= DB CONNECT ================= */
+app.use(express.json());
+
+// Connect Database
 connectDB();
 
-/* ================= ROOT ================= */
-app.get("/", (req, res) => {
-  res.send("API is running with MongoDB... 🚀");
+// Test Route to check if server is live
+app.get("/ping", (req, res) => {
+  res.json({ status: "alive", message: "Exam Portal Backend is working!" });
 });
 
-/* ================= REGISTER ================= */
+/* ================= ROUTES ================= */
+
+// Register Student
 app.post("/register", async (req, res) => {
   try {
     const { full_name, email, password, course } = req.body;
+    const existing = await Student.findOne({ email });
+    if (existing) return res.status(400).json({ error: "Email already exists" });
 
-    if (!full_name || !email || !password || !course) {
-      return res.status(400).json({ error: "All fields required" });
-    }
-
-    const exists = await Student.findOne({ email });
-    if (exists) {
-      return res.status(409).json({ error: "Email already registered" });
-    }
-
-    const hashed = await bcrypt.hash(password, 10);
-
-    await Student.create({
-      full_name,
-      email,
-      password: hashed,
-      course,
-    });
-
-    res.json({ status: "success", message: "Registration successful" });
+    const newStudent = new Student({ full_name, email, password, course });
+    await newStudent.save();
+    res.json({ status: "success", user: newStudent });
   } catch (err) {
-    console.error("DETAILED REGISTER ERROR:", err); // This will show in your terminal
-    res.status(500).json({ error: "Server error", details: err.message });
+    console.error("Register Error:", err);
+    res.status(500).json({ error: "Internal Server Error" });
   }
 });
 
-/* ================= LOGIN ================= */
+// Login Student
 app.post("/login", async (req, res) => {
+  const { email, password } = req.body;
   try {
-    const { email, password } = req.body;
-
-    const user = await Student.findOne({ email });
-    if (!user) {
-      return res.status(401).json({ error: "Invalid email or password" });
+    const user = await Student.findOne({ email, password });
+    if (user) {
+      res.json({ status: "success", user });
+    } else {
+      res.status(401).json({ error: "Invalid credentials" });
     }
-
-    const match = await bcrypt.compare(password, user.password);
-    if (!match) {
-      return res.status(401).json({ error: "Invalid email or password" });
-    }
-
-    res.json({
-      status: "success",
-      user: {
-        full_name: user.full_name,
-        email: user.email,
-        course: user.course,
-      },
-    });
   } catch (err) {
-    console.error("Login Error:", err);
-    res.status(500).json({ error: "Server error" });
+    res.status(500).json({ error: "Server Error" });
   }
 });
 
-/* ================= GET QUESTIONS ================= */
+// Get Questions by Course
 app.get("/get-questions", async (req, res) => {
+  const { course } = req.query;
   try {
-    const { course } = req.query;
-
-    if (!course) {
-      return res.status(400).json({ error: "Course required" });
-    }
-
-    const questions = await Question.aggregate([
-      { $match: { course } },
-      { $sample: { size: 20 } },
-    ]);
-
+    const questions = await Question.find({ course: course });
     res.json(questions);
   } catch (err) {
-    console.error("Question Error:", err);
-    res.status(500).json({ error: "Failed to fetch questions" });
+    res.status(500).json({ error: "Database Error" });
   }
 });
 
-/* ================= SAVE RESULT ================= */
+// Save Result
 app.post("/save-result", async (req, res) => {
   try {
     const { email, course, score, total } = req.body;
-
-    if (!email || !course || score === undefined || !total) {
-      return res.status(400).json({ error: "Missing data" });
-    }
-
-    await Result.create({
+    const newResult = new Result({
       student_email: email,
       course,
       score,
-      total,
+      total
     });
-
-    res.json({ status: "success", message: "Result saved" });
+    await newResult.save();
+    res.json({ status: "success" });
   } catch (err) {
-    console.error("Save Result Error:", err);
     res.status(500).json({ error: "Failed to save result" });
   }
 });
 
-/* ================= GET RESULTS ================= */
+// Get User Results
 app.get("/get-result", async (req, res) => {
+  const { email } = req.query;
   try {
-    const { email } = req.query;
-
-    if (!email) {
-      return res.status(400).json({ error: "Email required" });
-    }
-
-    const results = await Result.find({ student_email: email }).sort({
-      exam_date: -1,
-    });
-
+    const results = await Result.find({ student_email: email }).sort({ exam_date: -1 });
     res.json(results);
   } catch (err) {
-    console.error("Result Fetch Error:", err);
-    res.status(500).json({ error: "Cannot fetch results" });
+    res.status(500).json({ error: "Fetch error" });
   }
 });
 
-/* ================= SERVER ================= */
-const PORT = process.env.PORT || 5000;
 /* ================= ADMIN ROUTES ================= */
 
 // Get all users
@@ -193,13 +146,15 @@ app.delete("/admin/results/:id", async (req, res) => {
 // Manage Questions (Get All)
 app.get("/admin/questions", async (req, res) => {
   try {
-    const questions = await Question.find().limit(100); // Limit to 100 for performance
+    const questions = await Question.find().limit(100);
     res.json(questions);
   } catch (err) {
     res.status(500).json({ error: "Failed to fetch questions" });
   }
 });
 
+/* ================= SERVER ================= */
+const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
 });
