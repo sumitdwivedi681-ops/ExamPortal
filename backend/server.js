@@ -178,6 +178,24 @@ app.get("/admin/questions", async (req, res) => {
 
 /* ================= SERVER ================= */
 const PORT = process.env.PORT || 5000;
+// Update Profile
+app.post("/update-profile", async (req, res) => {
+  try {
+    const { email, full_name, password, profile_img } = req.body;
+    const user = await Student.findOne({ email });
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    if (full_name) user.full_name = full_name;
+    if (password) user.password = password;
+    if (profile_img) user.profile_img = profile_img;
+
+    await user.save();
+    res.json({ status: "success", user });
+  } catch (err) {
+    res.status(500).json({ error: "Update failed" });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
 });
