@@ -9,7 +9,7 @@ ExamPortal is a full-stack online examination platform designed for efficient te
 ---
 
 ## 🔗 Live Demo
-Visit the live portal: [https://examportalsumit.netlify.app/](https://examportalsumit.netlify.app/)
+Visit the live portal: [https://exam-portal-five-rose.vercel.app/](https://exam-portal-five-rose.vercel.app/)
 
 ---
 
