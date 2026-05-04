@@ -147,13 +147,28 @@ async function loadData() {
             const res = await fetch(`${window.API_URL}/admin/questions`);
             const questions = await res.json();
             tableHead.innerHTML = `<tr><th>Question</th><th>Course</th><th>Correct Answer</th></tr>`;
-            tableBody.innerHTML = questions.map(q => `
-                <tr>
-                    <td><div class="text-truncate" style="max-width: 400px;">${q.question_title}</div></td>
-                    <td><span class="badge bg-info text-white">${q.course}</span></td>
-                    <td><span class="text-success fw-bold">${q.answer}</span></td>
-                </tr>
-            `).join('');
+            tableBody.innerHTML = questions.map(q => {
+                const row = document.createElement('tr');
+                
+                const qTitleTd = document.createElement('td');
+                const qTitleDiv = document.createElement('div');
+                qTitleDiv.className = "text-truncate";
+                qTitleDiv.style.maxWidth = "400px";
+                qTitleDiv.textContent = q.question_title; // Safe text
+                qTitleTd.appendChild(qTitleDiv);
+                
+                const courseTd = document.createElement('td');
+                courseTd.innerHTML = `<span class="badge bg-info text-white">${q.course}</span>`;
+                
+                const answerTd = document.createElement('td');
+                answerTd.innerHTML = `<span class="text-success fw-bold">${q.answer}</span>`;
+                
+                row.appendChild(qTitleTd);
+                row.appendChild(courseTd);
+                row.appendChild(answerTd);
+                
+                return row.outerHTML;
+            }).join('');
         }
     } catch (err) {
         tableBody.innerHTML = '<tr><td colspan="5" class="text-center text-danger">Error loading data</td></tr>';
