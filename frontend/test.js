@@ -57,20 +57,33 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     const selected = answers[q._id];
 
-    optionsBox.innerHTML = `
-      <div class="option-item">
-        <label><input type="radio" name="option" value="${q.optionA}" ${selected === q.optionA ? "checked" : ""}> A. ${q.optionA}</label>
-      </div>
-      <div class="option-item">
-        <label><input type="radio" name="option" value="${q.optionB}" ${selected === q.optionB ? "checked" : ""}> B. ${q.optionB}</label>
-      </div>
-      <div class="option-item">
-        <label><input type="radio" name="option" value="${q.optionC}" ${selected === q.optionC ? "checked" : ""}> C. ${q.optionC}</label>
-      </div>
-      <div class="option-item">
-        <label><input type="radio" name="option" value="${q.optionD}" ${selected === q.optionD ? "checked" : ""}> D. ${q.optionD}</label>
-      </div>
-    `;
+    optionsBox.innerHTML = ""; 
+    
+    ["optionA", "optionB", "optionC", "optionD"].forEach((optKey, index) => {
+      const optVal = q[optKey] || "";
+      const letter = ["A", "B", "C", "D"][index];
+      
+      const optionDiv = document.createElement("div");
+      optionDiv.className = "option-item";
+      
+      const label = document.createElement("label");
+      
+      const radio = document.createElement("input");
+      radio.type = "radio";
+      radio.name = "option";
+      radio.value = optVal;
+      if (selected === optVal) radio.checked = true;
+      
+      label.appendChild(radio);
+      label.appendChild(document.createTextNode(` ${letter}. `));
+      
+      const span = document.createElement("span");
+      span.textContent = optVal; // Safe text rendering
+      label.appendChild(span);
+      
+      optionDiv.appendChild(label);
+      optionsBox.appendChild(optionDiv);
+    });
 
     prevBtn.disabled = currentIndex === 0;
     nextBtn.style.display = currentIndex === questions.length - 1 ? "none" : "inline-block";
