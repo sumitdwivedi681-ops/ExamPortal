@@ -39,6 +39,8 @@ document.getElementById("registerForm").addEventListener("submit", async (e) => 
     });
 
     const data = await res.json();
+    loader.style.display = "none";
+
     if (data.status === "success") {
       popupText.innerText = "Registration Successful! Please Login.";
       popup.style.display = "flex";
@@ -47,7 +49,6 @@ document.getElementById("registerForm").addEventListener("submit", async (e) => 
       popupText.innerText = data.error || "Registration failed";
       popup.style.display = "flex";
     }
-    loader.style.display = "none";
   } catch (err) {
     loader.style.display = "none";
     popupText.innerText = "Connection error!";
@@ -72,16 +73,17 @@ document.getElementById("loginForm").addEventListener("submit", async (e) => {
     });
 
     const data = await res.json();
+    loader.style.display = "none";
 
     if (data.status === "success") {
       localStorage.setItem("loggedUser", JSON.stringify(data.user));
       popupText.innerText = "Login Successful! Redirecting...";
       popup.style.display = "flex";
       setTimeout(() => {
+        loader.style.display = "flex";
         window.location.href = "dashboard.html";
       }, 1500);
     } else {
-      loader.style.display = "none";
       popupText.innerText = data.error || "Invalid credentials";
       popup.style.display = "flex";
     }
