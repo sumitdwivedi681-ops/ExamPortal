@@ -23,6 +23,8 @@ popupBtn.onclick = () => {
 /* ================= REGISTER ================= */
 document.getElementById("registerForm").addEventListener("submit", async (e) => {
   e.preventDefault();
+  const loader = document.getElementById("loader");
+  loader.style.display = "flex";
 
   const full_name = document.getElementById("full_name").value.trim();
   const email = document.getElementById("register_email").value.trim();
@@ -45,7 +47,9 @@ document.getElementById("registerForm").addEventListener("submit", async (e) => 
       popupText.innerText = data.error || "Registration failed";
       popup.style.display = "flex";
     }
+    loader.style.display = "none";
   } catch (err) {
+    loader.style.display = "none";
     popupText.innerText = "Connection error!";
     popup.style.display = "flex";
   }
@@ -54,6 +58,8 @@ document.getElementById("registerForm").addEventListener("submit", async (e) => 
 /* ================= LOGIN ================= */
 document.getElementById("loginForm").addEventListener("submit", async (e) => {
   e.preventDefault();
+  const loader = document.getElementById("loader");
+  loader.style.display = "flex";
 
   const email = document.getElementById("login-email").value.trim();
   const password = document.getElementById("login-password").value;
@@ -75,10 +81,12 @@ document.getElementById("loginForm").addEventListener("submit", async (e) => {
         window.location.href = "dashboard.html";
       }, 1500);
     } else {
+      loader.style.display = "none";
       popupText.innerText = data.error || "Invalid credentials";
       popup.style.display = "flex";
     }
   } catch (err) {
+    loader.style.display = "none";
     console.error("Login Error:", err);
     popupText.innerText = "Connection failed!";
     popup.style.display = "flex";
