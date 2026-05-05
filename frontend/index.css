@@ -90,7 +90,7 @@ footer{
     padding: 15px;
     text-align: center;
     color: #fff;
-    font-size: 16px;
+    font-size: 16px;
 }
 
 .popup-container {
@@ -113,7 +113,7 @@ footer{
     border-radius: 20px;
     text-align: center;
     box-shadow: 0 0 35px rgba(0, 0, 0, 0.5); 
-    animation: fadeIn 0.4s ease-in-out;
+    animation: fadeIn 0.2s ease-in-out;
     max-width: 90%;
 }
 
@@ -193,7 +193,7 @@ footer{
     background: transparent;
     color: #002b5c;
     cursor: pointer;
-    transition: 0.3s;
+    transition: 0.2s;
 }
 
 .tab-btn.active {
@@ -204,7 +204,7 @@ footer{
 /* TAB CONTENT */
 .tab-content {
     display: none;
-    animation: fadeTab 0.3s ease-in-out;
+    animation: fadeTab 0.2s ease-in-out;
 }
 
 .tab-content.active {
@@ -250,7 +250,7 @@ footer{
     justify-content: center;
     align-items: center;
     z-index: 10000;
-    transition: 0.3s;
+    transition: 0.1s;
 }
 
 .loader-box {

@@ -82,7 +82,7 @@ document.getElementById("loginForm").addEventListener("submit", async (e) => {
       setTimeout(() => {
         loader.style.display = "flex";
         window.location.href = "dashboard.html";
-      }, 1500);
+      }, 500);
     } else {
       popupText.innerText = data.error || "Invalid credentials";
       popup.style.display = "flex";
