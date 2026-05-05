@@ -132,3 +132,9 @@ function renderChart(labels, data) {
         }
     });
 }
+function logout() {
+    if(confirm("Are you sure you want to logout?")) {
+        localStorage.removeItem("loggedUser");
+        window.location.href = "index.html";
+    }
+}
