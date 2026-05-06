@@ -3,7 +3,53 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Elite Exam Portal | Student Login & Registration</title>
+    <title>Elite Exam Portal | Free Online Practice Tests for BCA, MCA, B.Tech Students</title>
+    <meta name="description" content="Elite Exam Portal — Free online practice tests for BCA, MCA, B.Tech, MBA & more. Register, login, and start learning with smart MCQ exams on DSA, DBMS, OS, Cloud Computing, AI, and 20+ subjects. Built by Sumit Dwivedi.">
+    <meta name="keywords" content="online exam portal, free practice tests, MCQ test, BCA exam, MCA exam, B.Tech exam, DSA quiz, DBMS quiz, Operating System quiz, Computer Networks quiz, AI quiz, Machine Learning quiz, student exam portal, online test system, Sumit Dwivedi">
+    <meta name="author" content="Sumit Dwivedi">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://exam-portal-five-rose.vercel.app/">
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://exam-portal-five-rose.vercel.app/">
+    <meta property="og:title" content="Elite Exam Portal | Free Online Practice Tests for Students">
+    <meta property="og:description" content="Practice 20+ computer science subjects with instant feedback. Register free and start your exam preparation today.">
+    <meta property="og:image" content="https://exam-portal-five-rose.vercel.app/favicon.png">
+    <meta property="og:site_name" content="Elite Exam Portal">
+    <meta property="og:locale" content="en_IN">
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Elite Exam Portal | Free Online Practice Tests">
+    <meta name="twitter:description" content="Practice 20+ CS subjects — DSA, DBMS, OS, AI, ML & more. Register free and start learning with smart MCQ exams.">
+    <meta name="twitter:image" content="https://exam-portal-five-rose.vercel.app/favicon.png">
+
+    <!-- Structured Data (JSON-LD) -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "Elite Exam Portal",
+      "url": "https://exam-portal-five-rose.vercel.app/",
+      "description": "A free online examination platform for students to practice MCQ tests on 20+ computer science subjects with instant results and performance tracking.",
+      "applicationCategory": "EducationalApplication",
+      "operatingSystem": "Web Browser",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "INR"
+      },
+      "author": {
+        "@type": "Person",
+        "name": "Sumit Dwivedi",
+        "url": "https://github.com/sumitdwivedi681-ops"
+      },
+      "educationalLevel": ["BCA", "MCA", "B.Tech", "MBA", "M.Tech", "B.Sc", "Diploma"],
+      "inLanguage": "en"
+    }
+    </script>
+
     <link rel="stylesheet" href="index.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
@@ -30,6 +76,7 @@
                 </div>
         </div>
     </nav>
+<main>
 <section class="hero">
     <div class="container">
         <h1>Online Test System for Students</h1>
@@ -123,16 +170,17 @@
 
 
     <!-- Admin Access Section -->
-    <div class="container py-5 mt-5">
+    <section class="container py-5 mt-5" aria-label="Administrator Access">
         <div class="row justify-content-center text-center">
             <div class="col-md-8 p-5 bg-white rounded-5 shadow-sm border">
-                <i class="fas fa-user-shield text-warning mb-3" style="font-size: 3rem;"></i>
+                <i class="fas fa-user-shield text-warning mb-3" style="font-size: 3rem;" aria-hidden="true"></i>
                 <h2 class="fw-bold">Administrator Portal</h2>
                 <p class="text-muted mb-4">Authorized access only. Manage students, results, and exam questions.</p>
                 <a href="admin.html" class="btn btn-dark btn-lg px-5 rounded-pill shadow-sm">Enter Admin Panel</a>
             </div>
         </div>
-    </div>
+    </section>
+</main>
 
 <!-- Footer -->
 <footer style="background: #0f172a; color: #94a3b8; padding: 60px 0 30px 0; margin-top: 80px;">
