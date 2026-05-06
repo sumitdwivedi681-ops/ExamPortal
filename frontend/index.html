@@ -35,16 +35,8 @@
       "description": "A free online examination platform for students to practice MCQ tests on 20+ computer science subjects with instant results and performance tracking.",
       "applicationCategory": "EducationalApplication",
       "operatingSystem": "Web Browser",
-      "offers": {
-        "@type": "Offer",
-        "price": "0",
-        "priceCurrency": "INR"
-      },
-      "author": {
-        "@type": "Person",
-        "name": "Sumit Dwivedi",
-        "url": "https://github.com/sumitdwivedi681-ops"
-      },
+      "offers": { "@type": "Offer", "price": "0", "priceCurrency": "INR" },
+      "author": { "@type": "Person", "name": "Sumit Dwivedi", "url": "https://github.com/sumitdwivedi681-ops" },
       "educationalLevel": ["BCA", "MCA", "B.Tech", "MBA", "M.Tech", "B.Sc", "Diploma"],
       "inLanguage": "en"
     }
@@ -53,11 +45,84 @@
     <link rel="stylesheet" href="index.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=Orbitron:wght@700&display=swap" rel="stylesheet">
     <link rel="icon" type="image/png" href="favicon.png">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- Dashboard & Result inline styles (scoped) -->
+    <style>
+    /* Dashboard scoped styles */
+    :root { --primary: #6366f1; --dark: #0f172a; --bg: #f8fafc; }
+        #page-dashboard { background-color: var(--bg); font-family: 'Outfit', sans-serif; }
+        .hero-section { background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); color: white; padding: 60px 0; border-radius: 0 0 50px 50px; margin-bottom: 40px; }
+        .nav-pills .nav-link { color: rgba(255,255,255,0.7); background: rgba(255,255,255,0.1); margin: 0 10px; border-radius: 12px; font-weight: 600; transition: 0.3s; }
+        .nav-pills .nav-link.active { background: white; color: var(--primary); box-shadow: 0 10px 15px rgba(0,0,0,0.1); }
+        .glass-card { background: white; border-radius: 24px; padding: 30px; border: none; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05); height: 100%; }
+        
+        /* Digital Display Style */
+        .digital-num { font-family: 'Orbitron', sans-serif; font-size: 3rem; color: var(--primary); text-shadow: 0 0 10px rgba(99, 102, 241, 0.2); }
+        .digital-label { text-transform: uppercase; letter-spacing: 2px; font-weight: 700; color: #94a3b8; font-size: 0.8rem; }
+
+        .profile-img { width: 120px; height: 120px; border-radius: 50%; object-fit: cover; border: 4px solid white; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        #page-dashboard footer { background: var(--dark); color: #94a3b8; padding: 60px 0; margin-top: 80px; }
+        .chart-container { position: relative; height: 300px; width: 100%; }
+        .logout-btn { position: absolute; top: 20px; right: 20px; background: rgba(255, 255, 255, 0.2); color: white; border: none; padding: 8px 20px; border-radius: 50px; font-weight: 600; transition: 0.3s; backdrop-filter: blur(5px); }
+        .logout-btn:hover { background: #f43f5e; color: white; transform: translateY(-2px); box-shadow: 0 4px 15px rgba(244, 63, 94, 0.4); }
+
+    /* Result scoped styles */
+    #page-result { 
+            background: linear-gradient(135deg, #e0f2fe 0%, #f0f9ff 100%); 
+            font-family: 'Outfit', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #0f172a;
+            padding: 20px;
+        }
+        .result-card {
+            background: white;
+            border-radius: 40px;
+            padding: 50px;
+            width: 100%;
+            max-width: 600px;
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.1);
+            text-align: center;
+            border: 1px solid rgba(0,0,0,0.05);
+        }
+        .digital-score {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 5rem;
+            color: #0369a1;
+            text-shadow: 2px 2px 0px rgba(14, 165, 233, 0.1);
+            margin: 20px 0;
+        }
+        .chart-box {
+            width: 250px;
+            height: 250px;
+            margin: 0 auto 30px;
+        }
+        .btn-action {
+            padding: 15px 30px;
+            border-radius: 15px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: 0.3s;
+            border: none;
+        }
+        .btn-dashboard { background: #0ea5e9; color: white; }
+        .btn-dashboard:hover { background: #0284c7; transform: scale(1.03); color: white; }
+        .btn-subject { background: #f0f9ff; color: #0369a1; border: 2px solid #bae6fd !important; }
+        .btn-subject:hover { background: #e0f2fe; }
+    </style>
 </head>
 <body>
-    <!-- Full-screen Loader -->
-    <div id="loader" class="loader-container">
+
+<!-- ====== PAGE: HOME ====== -->
+<section id="page-home" class="spa-page active">
+<!-- Full-screen Loader -->
+    <div id="home-loader" class="loader-container">
         <div class="loader-box">
             <div class="spinner"></div>
             <p class="mt-3 fw-bold text-primary">Processing... Please wait</p>
@@ -199,7 +264,7 @@
             <div class="col-md-3 mb-4">
                 <h5 class="fw-bold text-white mb-4">Feedback</h5>
                 <p class="small text-muted mb-3">Help us improve! Send your feedback or queries directly to our team.</p>
-                <a href="mailto:sumitdwivedi681@gmail.com" id="feedbackBtn" class="btn btn-primary btn-sm rounded-pill px-4">Send Feedback</a>
+                <a href="mailto:sumitdwivedi681@gmail.com" id="feedbackBtn-home" class="feedback-link class="btn btn-primary btn-sm rounded-pill px-4">Send Feedback</a>
             </div>
             <div class="col-md-3 mb-4">
                 <h5 class="fw-bold text-white mb-4 text-start">Contact Developer</h5>
@@ -224,6 +289,507 @@
         <button id="popupBtn">OK</button>
     </div>
 </div>
+</section>
+
+<!-- ====== PAGE: DASHBOARD ====== -->
+<section id="page-dashboard" class="spa-page">
+<div class="hero-section text-center position-relative">
+    <button class="logout-btn" onclick="logout()"><i class="fas fa-sign-out-alt me-2"></i>Logout</button>
+    <div class="container">
+        <div class="mb-4">
+            <img src="https://ui-avatars.com/api/?name=Student&background=random" id="topProfileImg" class="profile-img mb-3" alt="Profile">
+            <h2 class="fw-bold">Welcome, <span id="studentName">Student</span></h2>
+            <p class="opacity-75">MCA Student | Elite Member</p>
+        </div>
+        
+        <ul class="nav nav-pills justify-content-center" id="pills-tab" role="tablist">
+            <li class="nav-item">
+                <button class="nav-link active" onclick="showSection('performance')"><i class="fas fa-chart-line me-2"></i>Performance</button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link" onclick="showSection('results')"><i class="fas fa-history me-2"></i>History</button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link" onclick="showSection('profile')"><i class="fas fa-user-edit me-2"></i>My Profile</button>
+            </li>
+        </ul>
+    </div>
+</div>
+
+<div class="container">
+    <!-- Performance Section -->
+    <div id="section-performance" class="dashboard-section">
+        <div class="row g-4 mb-5">
+            <div class="col-md-6">
+                <div class="glass-card">
+                    <h5 class="fw-bold mb-4">Subject Wise Analysis</h5>
+                    <div class="chart-container">
+                        <canvas id="performanceChart"></canvas>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="glass-card text-center d-flex flex-column justify-content-center">
+                    <div class="digital-label">Total Exams</div>
+                    <div class="digital-num" id="total-exams">0</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="glass-card text-center d-flex flex-column justify-content-center">
+                    <div class="digital-label">Avg Accuracy</div>
+                    <div class="digital-num" id="avg-score">0%</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row">
+            <div class="col-12">
+                <a href="#subjects" class="btn btn-primary btn-lg w-100 rounded-4 py-3 fw-bold shadow-lg">
+                    <i class="fas fa-rocket me-2"></i>START NEW PRACTICE TEST
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Results Section -->
+    <div id="section-results" class="dashboard-section d-none">
+        <div class="glass-card">
+            <h4 class="fw-bold mb-4">Exam History</h4>
+            <div class="table-responsive">
+                <table class="table align-middle">
+                    <thead><tr><th>Course</th><th>Score</th><th>Status</th><th>Date</th></tr></thead>
+                    <tbody id="result-history"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Profile Section -->
+    <div id="section-profile" class="dashboard-section d-none">
+        <div class="row justify-content-center">
+            <div class="col-md-6">
+                <div class="glass-card">
+                    <h4 class="fw-bold mb-4">Edit Profile</h4>
+                    <form id="profileForm">
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold">FULL NAME</label>
+                            <input type="text" id="edit-name" class="form-control rounded-3 py-2" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold">PROFILE IMAGE URL</label>
+                            <input type="text" id="edit-img" class="form-control rounded-3 py-2" placeholder="https://example.com/image.jpg">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold">NEW PASSWORD</label>
+                            <input type="password" id="edit-pass" class="form-control rounded-3 py-2" placeholder="Leave blank to keep same">
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100 rounded-3 py-2 mt-3 fw-bold">Save Changes</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Footer -->
+<footer style="background: #0f172a; color: #94a3b8; padding: 60px 0 30px 0; margin-top: 80px;">
+    <div class="container">
+        <div class="row text-start">
+            <div class="col-md-4 mb-4">
+                <h5 class="fw-bold text-white mb-4">Exam Portal</h5>
+                <p>An intelligent platform created by **Sumit Dwivedi** (MCA Student) for students to practice and master computer science topics with real-time feedback.</p>
+            </div>
+            <div class="col-md-2 mb-4">
+                <h5 class="fw-bold text-white mb-4 text-start">Explore</h5>
+                <a href="#subjects" class="text-decoration-none text-muted d-block mb-2">Start Test</a>
+                <a href="admin.html" class="text-decoration-none text-muted d-block mb-2">Admin Panel</a>
+                <a href="#home" class="text-decoration-none text-muted d-block mb-2">Home</a>
+            </div>
+            <div class="col-md-3 mb-4">
+                <h5 class="fw-bold text-white mb-4">Feedback</h5>
+                <p class="small text-muted mb-3">Help us improve! Send your feedback or queries directly to our team.</p>
+                <a href="mailto:sumitdwivedi681@gmail.com" id="feedbackBtn-home" class="feedback-link class="btn btn-primary btn-sm rounded-pill px-4">Send Feedback</a>
+            </div>
+            <div class="col-md-3 mb-4">
+                <h5 class="fw-bold text-white mb-4 text-start">Contact Developer</h5>
+                <p class="mb-1 fw-bold text-white">Sumit Dwivedi</p>
+                <p class="mb-1 text-muted small">MCA Student | Developer</p>
+                <a href="mailto:sumitdwivedi681@gmail.com" class="text-decoration-none text-white">sumitdwivedi681@gmail.com</a>
+                <div class="mt-3">
+                    <a href="https://www.linkedin.com/in/sumit-dwivedi-76965b386/" target="_blank" class="text-muted me-3 fs-5"><i class="fab fa-linkedin"></i></a>
+                    <a href="https://github.com/sumitdwivedi681-ops" target="_blank" class="text-muted fs-5"><i class="fab fa-github"></i></a>
+                </div>
+            </div>
+        </div>
+        <hr style="background: rgba(255,255,255,0.1); margin: 40px 0;">
+        <div class="text-center small">
+            © 2025 Exam Portal. Created by **Sumit Dwivedi (MCA Student)**.
+        </div>
+    </div>
+</footer>
+</section>
+
+<!-- ====== PAGE: SUBJECTS ====== -->
+<section id="page-subjects" class="spa-page">
+<div class="navbar-dashboard mb-5">
+    <div class="container d-flex justify-content-between align-items-center">
+        <h2 class="fw-bold mb-0 text-primary"><i class="fas fa-graduation-cap me-2"></i>Subjects</h2>
+        <a href="#dashboard" class="btn btn-primary rounded-pill px-4 shadow-sm fw-bold">
+            <i class="fas fa-th-large me-2"></i>My Dashboard
+        </a>
+    </div>
+</div>
+
+<div class="container">
+    <div class="text-center mb-5">
+        <h1 class="fw-bold">Pick Your Subject</h1>
+        <p class="text-muted">Select a topic to start your practice test.</p>
+    </div>
+
+    <section class="subjects-grid">
+
+        <!-- Example Card -->
+        <div class="subject-card red">
+            <i class="fas fa-code"></i>
+            <h3>DSA</h3>
+            <p>Learn logic building, problem solving, arrays, stacks, queues, trees, graphs, and algorithms.</p>
+            <div class="card-buttons">
+                <button data-course="Data Structures & Algorithms">Start Test</button>
+                <a href="https://www.geeksforgeeks.org/data-structures/" target="_blank">Learn More</a>
+            </div>
+        </div>
+
+        <div class="subject-card blue">
+            <i class="fas fa-desktop"></i>
+            <h3>Operating System</h3>
+            <p>Understand processes, threads, scheduling, memory management, and OS architecture.</p>
+            <div class="card-buttons">
+                <button data-course="Operating System">Start Test</button>
+                <a href="https://www.geeksforgeeks.org/operating-systems/" target="_blank">Learn More</a>
+            </div>
+        </div>
+
+        <div class="subject-card green">
+            <i class="fas fa-database"></i>
+            <h3>DBMS</h3>
+            <p>Master relational databases, SQL queries, normalization, and data modeling.</p>
+            <div class="card-buttons">
+                <button data-course="DBMS">Start Test</button>
+                <a href="https://www.geeksforgeeks.org/dbms/" target="_blank">Learn More</a>
+            </div>
+        </div>
+
+        <div class="subject-card yellow">
+            <i class="fas fa-network-wired"></i>
+            <h3>Computer Networks</h3>
+            <p>Learn networking basics, protocols, TCP/IP, routing, switching, and network security.</p>
+            <div class="card-buttons">
+                <button data-course="Computer Networks">Start Test</button>
+                <a href="https://www.geeksforgeeks.org/computer-network-tutorials/" target="_blank">Learn More</a>
+            </div>
+        </div>
+
+        <div class="subject-card purple">
+            <i class="fas fa-project-diagram"></i>
+            <h3>Software Engineering</h3>
+            <p>Study software development lifecycle, requirements, design, testing, and maintenance.</p>
+            <div class="card-buttons">
+                <button data-course="Software Engineering">Start Test</button>
+                <a href="https://www.tutorialspoint.com/software_engineering/" target="_blank">Learn More</a>
+            </div>
+        </div>
+
+        <div class="subject-card sky">
+            <i class="fas fa-cloud"></i>
+            <h3>Cloud Computing</h3>
+            <p>Explore AWS, Azure, virtualization, deployment models, and cloud services.</p>
+            <div class="card-buttons">
+                <button data-course="Cloud Computing">Start Test</button>
+                <a href="https://aws.amazon.com/training/" target="_blank">Learn More</a>
+            </div>
+        </div>
+
+        <div class="subject-card orange">
+            <i class="fas fa-shield-alt"></i>
+            <h3>Cyber Security</h3>
+            <p>Learn ethical hacking, network security, encryption, and cyber threats.</p>
+            <div class="card-buttons">
+                <button data-course="Cyber Security">Start Test</button>
+                <a href="https://www.cybrary.it/" target="_blank">Learn More</a>
+            </div>
+        </div>
+
+        <div class="subject-card indigo">
+            <i class="fas fa-robot"></i>
+            <h3>Artificial Intelligence</h3>
+            <p>Understand AI concepts, search algorithms, expert systems, and reasoning.</p>
+            <div class="card-buttons">
+                <button data-course="Artificial Intelligence">Start Test</button>
+                <a href="https://www.coursera.org/learn/ai" target="_blank">Learn More</a>
+            </div>
+        </div>
+
+        <div class="subject-card teal">
+            <i class="fas fa-brain"></i>
+            <h3>Machine Learning</h3>
+            <p>Explore supervised, unsupervised learning, regression, classification, and models.</p>
+            <div class="card-buttons">
+                <button data-course="Machine Learning">Start Test</button>
+                <a href="https://www.coursera.org/learn/machine-learning" target="_blank">Learn More</a>
+            </div>
+        </div>
+
+        <!-- Programming Languages -->
+        <div class="subject-card dark">
+            <i class="fas fa-c"></i>
+            <h3>C Programming</h3>
+            <p>Learn syntax, data types, loops, functions, arrays, pointers, and basic algorithms.</p>
+            <div class="card-buttons">
+                <button data-course="C Programming">Start Test</button>
+                <a href="https://www.programiz.com/c-programming" target="_blank">Learn More</a>
+            </div>
+        </div>
+
+        <div class="subject-card brown">
+            <i class="fas fa-code"></i>
+            <h3>C++ Programming</h3>
+            <p>Study OOPs, classes, inheritance, polymorphism, templates, and STL.</p>
+            <div class="card-buttons">
+                <button data-course="C++ Programming">Start Test</button>
+                <a href="https://www.programiz.com/cpp-programming" target="_blank">Learn More</a>
+            </div>
+        </div>
+
+        <div class="subject-card pink">
+            <i class="fab fa-java"></i>
+            <h3>Java Programming</h3>
+            <p>Learn OOPs, exception handling, multithreading, and Java frameworks.</p>
+            <div class="card-buttons">
+                <button data-course="Java Programming">Start Test</button>
+                <a href="https://www.learnjavaonline.org/" target="_blank">Learn More</a>
+            </div>
+        </div>
+
+        <div class="subject-card sky">
+            <i class="fab fa-python"></i>
+            <h3>Python Programming</h3>
+            <p>Explore scripting, data structures, libraries, automation, and basic ML.</p>
+            <div class="card-buttons">
+                <button data-course="Python Programming">Start Test</button>
+                <a href="https://www.learnpython.org/" target="_blank">Learn More</a>
+            </div>
+        </div>
+
+        <div class="subject-card yellow">
+            <i class="fab fa-js"></i>
+            <h3>JavaScript</h3>
+            <p>Learn JS basics, DOM, ES6+, event handling, and web development.</p>
+            <div class="card-buttons">
+                <button data-course="JavaScript">Start Test</button>
+                <a href="https://www.javascript.com/" target="_blank">Learn More</a>
+            </div>
+        </div>
+
+        <div class="subject-card purple">
+            <i class="fab fa-php"></i>
+            <h3>PHP</h3>
+            <p>Understand server-side scripting, forms, sessions, and database integration.</p>
+            <div class="card-buttons">
+                <button data-course="PHP">Start Test</button>
+                <a href="https://www.php.net/manual/en/tutorial.php" target="_blank">Learn More</a>
+            </div>
+        </div>
+
+        <div class="subject-card blue">
+            <i class="fab fa-microsoft"></i>
+            <h3>C# Programming</h3>
+            <p>Learn syntax, OOPs, .NET framework, and Windows applications development.</p>
+            <div class="card-buttons">
+                <button data-course="C# Programming">Start Test</button>
+                <a href="https://learn.microsoft.com/en-us/dotnet/csharp/" target="_blank">Learn More</a>
+            </div>
+        </div>
+
+        <div class="subject-card teal">
+            <i class="fas fa-code"></i>
+            <h3>Go Programming</h3>
+            <p>Learn Go syntax, concurrency, channels, goroutines, and backend development.</p>
+            <div class="card-buttons">
+                <button data-course="Go Programming">Start Test</button>
+                <a href="https://go.dev/learn/" target="_blank">Learn More</a>
+            </div>
+        </div>
+
+        <div class="subject-card orange">
+            <i class="fab fa-android"></i>
+            <h3>Kotlin</h3>
+            <p>Learn Kotlin syntax, OOPs, Android development, and coroutines.</p>
+            <div class="card-buttons">
+                <button data-course="Kotlin Programming">Start Test</button>
+                <a href="https://kotlinlang.org/docs/home.html" target="_blank">Learn More</a>
+            </div>
+        </div>
+
+        <div class="subject-card indigo">
+            <i class="fab fa-apple"></i>
+            <h3>Swift Programming</h3>
+            <p>Learn Swift basics, Xcode, iOS app development, and SwiftUI.</p>
+            <div class="card-buttons">
+                <button data-course="Swift Programming">Start Test</button>
+                <a href="https://developer.apple.com/swift/" target="_blank">Learn More</a>
+            </div>
+        </div>
+
+        <div class="subject-card dark">
+            <i class="fas fa-terminal"></i>
+            <h3>Rust</h3>
+            <p>Explore Rust syntax, memory safety, ownership, and system programming.</p>
+            <div class="card-buttons">
+                <button data-course="Rust Programming">Start Test</button>
+                <a href="https://www.rust-lang.org/learn" target="_blank">Learn More</a>
+            </div>
+        </div>
+
+        <div class="subject-card green">
+            <i class="fas fa-globe"></i>
+            <h3>Web Development</h3>
+            <p>Learn HTML, CSS, JS, frameworks, backend & frontend basics.</p>
+            <div class="card-buttons">
+                <button data-course="Web Development">Start Test</button>
+                <a href="https://www.w3schools.com/" target="_blank">Learn More</a>
+            </div>
+        </div>
+
+        <div class="subject-card blue">
+            <i class="fas fa-tools"></i>
+            <h3>DevOps</h3>
+            <p>Understand CI/CD, Docker, Kubernetes, cloud deployment, and automation.</p>
+            <div class="card-buttons">
+                <button data-course="DevOps">Start Test</button>
+                <a href="https://www.redhat.com/en/topics/devops" target="_blank">Learn More</a>
+            </div>
+        </div>
+
+        <div class="subject-card purple">
+            <i class="fas fa-chart-line"></i>
+            <h3>Data Science</h3>
+            <p>Learn data analysis, statistics, Python/R, visualization, and machine learning basics.</p>
+            <div class="card-buttons">
+                <button data-course="Data Science">Start Test</button>
+                <a href="https://www.datacamp.com/" target="_blank">Learn More</a>
+            </div>
+        </div>
+
+    </section>
+</div>
+
+<!-- Footer -->
+<footer style="background: #0f172a; color: #94a3b8; padding: 60px 0 30px 0; margin-top: 80px;">
+    <div class="container">
+        <div class="row text-start">
+            <div class="col-md-4 mb-4">
+                <h5 class="fw-bold text-white mb-4">Exam Portal</h5>
+                <p>An intelligent platform created by **Sumit Dwivedi** to help students master computer science topics through smart practice and instant feedback.</p>
+            </div>
+            <div class="col-md-2 mb-4">
+                <h5 class="fw-bold text-white mb-4">Explore</h5>
+                <a href="#dashboard" class="text-decoration-none text-muted d-block mb-2">My Stats</a>
+                <a href="admin.html" class="text-decoration-none text-muted d-block mb-2">Admin Portal</a>
+                <a href="#home" class="text-decoration-none text-muted d-block mb-2">Home</a>
+            </div>
+            <div class="col-md-3 mb-4">
+                <h5 class="fw-bold text-white mb-4">Feedback</h5>
+                <p class="small text-muted mb-3">Help us improve! Send your feedback or queries directly to our team.</p>
+                <a href="mailto:sumitdwivedi681@gmail.com" id="feedbackBtn-home" class="feedback-link class="btn btn-primary btn-sm rounded-pill px-4">Send Feedback</a>
+            </div>
+            <div class="col-md-3 mb-4">
+                <h5 class="fw-bold text-white mb-4">Contact Developer</h5>
+                <p class="mb-1 fw-bold text-white">Sumit Dwivedi</p>
+                <p class="mb-1 text-muted small">MCA Student | Developer</p>
+                <a href="mailto:sumitdwivedi681@gmail.com" class="text-decoration-none text-white">sumitdwivedi681@gmail.com</a>
+                <div class="mt-3">
+                    <a href="https://www.linkedin.com/in/sumit-dwivedi-76965b386/" target="_blank" class="text-muted me-3 fs-5"><i class="fab fa-linkedin"></i></a>
+                    <a href="https://github.com/sumitdwivedi681-ops" target="_blank" class="text-muted fs-5"><i class="fab fa-github"></i></a>
+                </div>
+            </div>
+        </div>
+        <hr style="background: rgba(255,255,255,0.1); margin: 40px 0;">
+        <div class="text-center small">
+            © 2025 Exam Portal. Created by **Sumit Dwivedi (MCA Student)**.
+        </div>
+    </div>
+</footer>
+</section>
+
+<!-- ====== PAGE: INSTRUCTION ====== -->
+<section id="page-instruction" class="spa-page">
+<div class="instr-container">
+    <div class="instr-card">
+        <h1 id="courseTitle">Course Name</h1>
+        <h3>Online Test Instructions</h3>
+        
+        <ul class="instruction-list">
+            <li>Total 20 Questions will be available.</li>
+            <li>You will get 20 minutes to complete the test.</li>
+            <li>Each correct answer carries +1 mark and no negative marking.</li>
+            <li>Do not refresh or close the window during the test.</li>
+            <li>Once submitted, answers cannot be changed.</li>
+        </ul>
+
+        <button class="instr-btn" onclick="startTest()">Start Test</button>
+    </div>
+</div>
+</section>
+
+<!-- ====== PAGE: TEST ====== -->
+<section id="page-test" class="spa-page">
+<div class="test-container">
+    <h1 id="course-title">Loading...</h1>
+
+    <div id="test-loader">Loading questions...</div>
+
+    <div id="test-area" style="display:none">
+      <div id="question-wrap">
+        <h2 id="question-text"></h2>
+        <div id="options"></div>
+      </div>
+
+      <div class="controls">
+        <button id="prevBtn" class="test-btn">Previous</button>
+        <button id="nextBtn" class="test-btn">Next</button>
+      </div>
+
+      <button id="submitBtn" style="display:none">Submit Test</button>
+    </div>
+  </div>
+</section>
+
+<!-- ====== PAGE: RESULT ====== -->
+<section id="page-result" class="spa-page">
+<div class="result-card">
+    <h1 class="fw-bold mb-1" style="color: #0f172a;">Test Completed!</h1>
+    <p class="text-muted mb-4">Here is your performance summary</p>
+
+    <!-- Digital Display -->
+    <div class="digital-score" id="score-display">0/20</div>
+
+    <!-- Pie Chart -->
+    <div class="chart-box">
+        <canvas id="resultChart"></canvas>
+    </div>
+
+    <!-- Controls -->
+    <div class="d-grid gap-3 mt-4">
+        <a href="#dashboard" class="btn btn-dashboard btn-action shadow-sm">
+            <i class="fas fa-th-large me-2"></i>Back to Dashboard
+        </a>
+        <a href="#subjects" class="btn btn-subject btn-action">
+            <i class="fas fa-redo me-2"></i>Try Another Subject
+        </a>
+    </div>
+</div>
+</section>
+
 <script src="config.js"></script>
 <script src="index.js"></script>
 </body>

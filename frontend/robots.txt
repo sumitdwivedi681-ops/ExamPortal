@@ -1,17 +1,12 @@
-# Robots.txt for Elite Exam Portal
+# Robots.txt for Elite Exam Portal (SPA)
 # https://exam-portal-five-rose.vercel.app
 
 User-agent: *
 Allow: /
 Allow: /index.html
-Allow: /subject.html
 
-# Block authenticated/dynamic pages from crawling
-Disallow: /dashboard.html
-Disallow: /test.html
-Disallow: /result.html
+# Admin page (separate)
 Disallow: /admin.html
-Disallow: /instruction.html
 
 # Sitemap
 Sitemap: https://exam-portal-five-rose.vercel.app/sitemap.xml
