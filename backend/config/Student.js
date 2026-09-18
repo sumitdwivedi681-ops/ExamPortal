@@ -5,6 +5,9 @@ const studentSchema = new mongoose.Schema({
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true },
   course: { type: String, required: true },
+  profile_img: { type: String, default: "" },
+  google_sub: { type: String, default: "" },
+  auth_provider: { type: String, default: "password" },
 }, { 
   timestamps: true,
   collection: 'Users' // Match your Atlas collection name exactly

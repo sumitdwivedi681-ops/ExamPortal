@@ -3,7 +3,24 @@
 //  Hash-based router + all page logic merged
 // ============================================================
 
+// Pre-warm backend immediately to eliminate cold-start wait
+let isPrewarming = false;
+function prewarmBackend() {
+    if (isPrewarming || !window.API_URL) return;
+    isPrewarming = true;
+    try {
+        fetch(`${window.API_URL}/ping`, { mode: 'cors', cache: 'no-store' })
+            .catch(() => {})
+            .finally(() => { isPrewarming = false; });
+    } catch (e) {
+        isPrewarming = false;
+    }
+}
+prewarmBackend();
+document.addEventListener('DOMContentLoaded', prewarmBackend);
+
 // ============= SPA ROUTER =============
+
 const pages = ['home', 'dashboard', 'subjects', 'instruction', 'test', 'result'];
 let currentPage = null;
 let performanceChart = null;
@@ -80,6 +97,7 @@ function setupFeedbackLinks() {
 
 // ============= PAGE: HOME (Login/Register) =============
 let homeInitialized = false;
+let googleTokenClient = null;
 
 function initHome() {
     if (homeInitialized) return;
@@ -163,15 +181,166 @@ function initHome() {
     });
 }
 
+function initGoogleAuth() {
+    if (googleTokenClient) return true;
+
+    if (!window.GOOGLE_CLIENT_ID || window.GOOGLE_CLIENT_ID === "PASTE_YOUR_GOOGLE_CLIENT_ID_HERE") {
+        showHomePopup("Add your Google Client ID in config.js first.");
+        return false;
+    }
+
+    if (!window.google || !google.accounts || !google.accounts.oauth2) {
+        showHomePopup("Google sign-in is still loading. Please try again.");
+        return false;
+    }
+
+    googleTokenClient = google.accounts.oauth2.initTokenClient({
+        client_id: window.GOOGLE_CLIENT_ID,
+        scope: "openid email profile",
+        prompt: "select_account",
+        callback: handleGoogleTokenResponse
+    });
+
+    return true;
+}
+
+function triggerGoogleSignIn() {
+    if (!initGoogleAuth()) return;
+    googleTokenClient.requestAccessToken({ prompt: "select_account" });
+}
+
+async function handleGoogleTokenResponse(response) {
+    if (!response || response.error || !response.access_token) {
+        showHomePopup("Google sign-in was cancelled or failed.");
+        return;
+    }
+
+    const loader = document.getElementById("home-loader");
+    loader.style.display = "flex";
+
+    try {
+        const profileRes = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
+            headers: { Authorization: `Bearer ${response.access_token}` }
+        });
+        const profile = await profileRes.json();
+        loader.style.display = "none";
+
+        if (!profileRes.ok || !profile.email) {
+            showHomePopup("Could not read your Google profile.");
+            return;
+        }
+
+        showGoogleCoursePopup(profile, response.access_token);
+    } catch (err) {
+        loader.style.display = "none";
+        showHomePopup("Connection failed during Google sign-in.");
+    }
+}
+
+function showGoogleCoursePopup(profile, accessToken) {
+    const oldOverlay = document.querySelector(".google-course-overlay");
+    if (oldOverlay) oldOverlay.remove();
+
+    const courseOptions = document.getElementById("course").innerHTML;
+    const overlay = document.createElement("div");
+    overlay.className = "google-course-overlay";
+    overlay.innerHTML = `
+        <div class="google-course-popup">
+            <h3>Complete Google Sign-In</h3>
+            <p>Select your course to continue to the portal.</p>
+            <div class="google-user-info">
+                <img src="${profile.picture || "https://ui-avatars.com/api/?name=Google+User&background=random"}" alt="Google profile">
+                <div>
+                    <div class="g-name">${escapeHtml(profile.name || "Google User")}</div>
+                    <div class="g-email">${escapeHtml(profile.email)}</div>
+                </div>
+            </div>
+            <select id="google-course-select" required>${courseOptions}</select>
+            <div class="popup-actions">
+                <button type="button" class="btn-cancel">Cancel</button>
+                <button type="button" class="btn-continue">Continue</button>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(overlay);
+    overlay.querySelector(".btn-cancel").onclick = () => overlay.remove();
+    overlay.querySelector(".btn-continue").onclick = () => {
+        const course = document.getElementById("google-course-select").value;
+        if (!course) {
+            showHomePopup("Please select your course.");
+            return;
+        }
+        overlay.remove();
+        completeGoogleLogin(accessToken, course);
+    };
+}
+
+async function completeGoogleLogin(accessToken, course) {
+    const loader = document.getElementById("home-loader");
+    loader.style.display = "flex";
+
+    try {
+        const res = await fetch(`${window.API_URL}/auth/google`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                accessToken,
+                course,
+                clientId: window.GOOGLE_CLIENT_ID
+            })
+        });
+        const data = await res.json();
+        loader.style.display = "none";
+
+        if (data.status === "success") {
+            localStorage.setItem("loggedUser", JSON.stringify(data.user));
+            showHomePopup("Google Login Successful! Redirecting...");
+            setTimeout(() => navigateTo("#dashboard"), 500);
+        } else {
+            showHomePopup(data.error || "Google login failed.");
+        }
+    } catch (err) {
+        loader.style.display = "none";
+        showHomePopup("Server error during Google login.");
+    }
+}
+
+function showHomePopup(message) {
+    document.getElementById("popupText").innerText = message;
+    document.getElementById("successPopup").style.display = "flex";
+}
+
+function escapeHtml(value) {
+    return String(value).replace(/[&<>"']/g, char => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#039;"
+    }[char]));
+}
+
 // Tab switching (global for onclick handlers in HTML)
-function showTab(tabId) {
+function showTab(tabId, ev) {
     const tabs = document.querySelectorAll("#page-home .tab-content");
     const buttons = document.querySelectorAll("#page-home .tab-btn");
     tabs.forEach(tab => tab.classList.remove("active"));
     buttons.forEach(btn => btn.classList.remove("active"));
-    document.getElementById(tabId).classList.add("active");
-    if (event && event.currentTarget) event.currentTarget.classList.add("active");
-    else buttons.forEach(btn => { if(btn.textContent.trim() === (tabId === 'loginTab' ? 'Login' : 'Register')) btn.classList.add('active'); });
+    const targetTab = document.getElementById(tabId);
+    if (targetTab) targetTab.classList.add("active");
+
+    const e = ev || (typeof window !== 'undefined' ? window.event : null);
+    if (e && e.currentTarget && e.currentTarget.classList) {
+        e.currentTarget.classList.add("active");
+    } else {
+        buttons.forEach(btn => {
+            const expected = tabId === 'loginTab' ? 'Login' : 'Register';
+            if (btn.textContent && btn.textContent.trim().includes(expected)) {
+                btn.classList.add('active');
+            }
+        });
+    }
 }
 
 
@@ -220,11 +389,15 @@ function updateDashboardUI(student) {
     }
 }
 
-function showSection(sectionId) {
+function showSection(sectionId, ev) {
     document.querySelectorAll('#page-dashboard .dashboard-section').forEach(s => s.classList.add('d-none'));
-    document.getElementById(`section-${sectionId}`).classList.remove('d-none');
+    const targetSection = document.getElementById(`section-${sectionId}`);
+    if (targetSection) targetSection.classList.remove('d-none');
     document.querySelectorAll('#page-dashboard .nav-link').forEach(l => l.classList.remove('active'));
-    if (event && event.currentTarget) event.currentTarget.classList.add('active');
+    const e = ev || (typeof window !== 'undefined' ? window.event : null);
+    if (e && e.currentTarget && e.currentTarget.classList) {
+        e.currentTarget.classList.add('active');
+    }
 }
 
 async function loadDashboardStats(student) {
@@ -326,6 +499,7 @@ function initSubjects() {
         // Remove old listeners by cloning
         const newBtn = btn.cloneNode(true);
         btn.parentNode.replaceChild(newBtn, btn);
+        newBtn.addEventListener("mouseenter", prewarmBackend);
         newBtn.addEventListener("click", () => {
             const course = newBtn.getAttribute("data-course");
             navigateTo(`#test?course=${encodeURIComponent(course)}`);
@@ -369,6 +543,35 @@ let testCurrentIndex = 0;
 let testAnswers = {};
 let testCourse = '';
 
+// Helper to fetch course questions with sessionStorage caching and retry
+async function fetchQuestionsWithCache(courseName) {
+    const cacheKey = `exam_questions_${encodeURIComponent(courseName)}`;
+    try {
+        const cached = sessionStorage.getItem(cacheKey);
+        if (cached) {
+            const parsed = JSON.parse(cached);
+            if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        }
+    } catch (e) {}
+
+    // Fetch from backend with 1 retry for cold start resilience
+    let res;
+    try {
+        res = await fetch(`${window.API_URL}/get-questions?course=${encodeURIComponent(courseName)}`);
+    } catch (fetchErr) {
+        // Retry once after 2s if backend was waking up
+        await new Promise(r => setTimeout(r, 2000));
+        res = await fetch(`${window.API_URL}/get-questions?course=${encodeURIComponent(courseName)}`);
+    }
+
+    if (!res.ok) throw new Error(`Server returned ${res.status}`);
+    const data = await res.json();
+    if (Array.isArray(data) && data.length > 0) {
+        try { sessionStorage.setItem(cacheKey, JSON.stringify(data)); } catch (e) {}
+    }
+    return data;
+}
+
 async function initTest(course) {
     if (!course) { navigateTo('#subjects'); return; }
     testCourse = decodeURIComponent(course);
@@ -382,7 +585,7 @@ async function initTest(course) {
 
     courseTitle.innerText = testCourse;
     loader.style.display = "block";
-    loader.innerText = "Loading questions...";
+    loader.innerHTML = '<div class="spinner-border text-primary me-2" role="status" style="width: 1.5rem; height: 1.5rem; vertical-align: middle;"></div> Preparing test questions...';
     testArea.style.display = "none";
 
     // Reset state
@@ -391,8 +594,7 @@ async function initTest(course) {
     testAnswers = {};
 
     try {
-        const res = await fetch(`${window.API_URL}/get-questions?course=${encodeURIComponent(testCourse)}`);
-        const allQuestions = await res.json();
+        const allQuestions = await fetchQuestionsWithCache(testCourse);
 
         if (!allQuestions || !allQuestions.length) {
             loader.innerText = "No questions found for this course!";
@@ -405,7 +607,7 @@ async function initTest(course) {
         loadTestQuestion();
     } catch (err) {
         console.error(err);
-        loader.innerText = "Server error!";
+        loader.innerHTML = 'Failed to load questions. <button class="btn btn-sm btn-outline-primary ms-2" onclick="initTest(testCourse)">Retry</button>';
     }
 
     // Wire up buttons

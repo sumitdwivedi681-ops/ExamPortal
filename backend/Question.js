@@ -12,4 +12,8 @@ const questionSchema = new mongoose.Schema({
   collection: 'Questions' // Match your Atlas collection name exactly
 });
 
+// Index for fast course queries across 1.8k+ questions
+questionSchema.index({ course: 1 });
+
 module.exports = mongoose.model("Question", questionSchema);
+

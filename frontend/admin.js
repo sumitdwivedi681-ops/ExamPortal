@@ -1,9 +1,28 @@
 let currentTab = 'users';
 
+// Pre-warm backend immediately when admin page is accessed
+(function prewarm() {
+    if (window.API_URL) {
+        fetch(`${window.API_URL}/ping`, { mode: 'cors', cache: 'no-store' }).catch(() => {});
+    }
+})();
+
 // VERIFY ADMIN LOGIN WITH BACKEND
 async function checkAdminLogin() {
-    const password = document.getElementById("admin-pass-input").value;
+    const passInput = document.getElementById("admin-pass-input");
+    const password = passInput ? passInput.value.trim() : "";
+    if (!password) {
+        alert("Please enter the admin password.");
+        return;
+    }
     
+    const btn = document.querySelector("#login-overlay button");
+    const originalBtnHtml = btn ? btn.innerHTML : "Unlock Dashboard";
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span> Verifying...';
+    }
+
     try {
         const res = await fetch(`${window.API_URL}/admin/login`, {
             method: "POST",
@@ -20,10 +39,16 @@ async function checkAdminLogin() {
             loadData();
             setupPasswordUpdate(); // Initialize form listener
         } else {
-            alert("Incorrect Admin Password!");
+            alert(data.error || "Incorrect Admin Password!");
+            if (passInput) passInput.focus();
         }
     } catch (err) {
-        alert("Server error during login");
+        alert("Server connection error during login. Please try again in a few seconds.");
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = originalBtnHtml;
+        }
     }
 }
 
@@ -97,10 +122,15 @@ async function loadData() {
     tableBody.innerHTML = '<tr><td colspan="5" class="text-center py-5"><div class="spinner-border text-primary"></div></td></tr>';
 
     try {
-        const uRes = await fetch(`${window.API_URL}/admin/users`);
-        const rRes = await fetch(`${window.API_URL}/admin/results`);
-        const allUsers = await uRes.json();
-        const allResults = await rRes.json();
+        // Fetch users and results in parallel for 2x faster load
+        const [uRes, rRes] = await Promise.all([
+            fetch(`${window.API_URL}/admin/users`),
+            fetch(`${window.API_URL}/admin/results`)
+        ]);
+        const [allUsers, allResults] = await Promise.all([
+            uRes.json(),
+            rRes.json()
+        ]);
         
         totalUsersEl.innerText = allUsers.length;
         totalResultsEl.innerText = allResults.length;

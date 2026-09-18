@@ -2,6 +2,7 @@ const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
 const dotenv = require("dotenv");
+const compression = require("compression");
 
 dotenv.config();
 
@@ -11,6 +12,9 @@ const Result = require("./Result");
 const connectDB = require("./config/db");
 
 const app = express();
+
+// High performance Gzip compression for all responses
+app.use(compression());
 
 // SUPER OPEN CORS FOR PRODUCTION
 app.use(cors({
@@ -26,24 +30,50 @@ connectDB();
 
 // Admin Settings Schema (Store Password)
 const AdminSchema = new mongoose.Schema({
-  password: { type: String, default: "admin123" }
+  password: { type: String, default: "Admin@123" }
 });
 const AdminSettings = mongoose.model("AdminSettings", AdminSchema);
 
-// Ensure at least one admin setting exists
+// Ensure admin password is set and migrated to Admin@123
 async function initAdmin() {
-  const count = await AdminSettings.countDocuments();
-  if (count === 0) {
-    await new AdminSettings({ password: "admin123" }).save();
-    console.log("Admin password initialized to: admin123");
+  try {
+    const admin = await AdminSettings.findOne();
+    if (!admin) {
+      await new AdminSettings({ password: "Admin@123" }).save();
+      console.log("Admin password initialized to: Admin@123");
+    } else if (admin.password === "admin" || admin.password === "admin123") {
+      admin.password = "Admin@123";
+      await admin.save();
+      console.log("Admin password migrated to: Admin@123");
+    }
+  } catch (err) {
+    console.error("Failed to init admin password:", err.message);
   }
 }
 initAdmin();
 
-// Test Route to check if server is live
+// In-memory course questions cache with 10-minute TTL for lightning-fast test loading (<5ms)
+const questionCache = new Map();
+const QUESTION_CACHE_TTL_MS = 10 * 60 * 1000;
+
+function getCachedQuestions(course) {
+  const cached = questionCache.get(course);
+  if (cached && (Date.now() - cached.timestamp < QUESTION_CACHE_TTL_MS)) {
+    return cached.data;
+  }
+  return null;
+}
+
+function setCachedQuestions(course, data) {
+  questionCache.set(course, { data, timestamp: Date.now() });
+}
+
+// Test Route to check if server is live (with pre-warm header)
 app.get("/ping", (req, res) => {
-  res.json({ status: "alive", message: "Exam Portal Backend is working!" });
+  res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+  res.json({ status: "alive", message: "Exam Portal Backend is working!", timestamp: Date.now() });
 });
+
 
 /* ================= ROUTES ================= */
 
@@ -82,11 +112,77 @@ app.post("/login", async (req, res) => {
   }
 });
 
-// Get Questions by Course
+// Google Student Login/Register
+app.post("/auth/google", async (req, res) => {
+  try {
+    const { accessToken, course, clientId } = req.body;
+    const expectedClientId = process.env.GOOGLE_CLIENT_ID || clientId;
+
+    if (!accessToken) return res.status(400).json({ error: "Google access token is required" });
+    if (!expectedClientId || expectedClientId === "PASTE_YOUR_GOOGLE_CLIENT_ID_HERE") {
+      return res.status(500).json({ error: "Google Client ID is not configured" });
+    }
+
+    const tokenInfoRes = await fetch(`https://oauth2.googleapis.com/tokeninfo?access_token=${encodeURIComponent(accessToken)}`);
+    const tokenInfo = await tokenInfoRes.json();
+    if (!tokenInfoRes.ok || tokenInfo.aud !== expectedClientId) {
+      return res.status(401).json({ error: "Invalid Google token" });
+    }
+
+    const profileRes = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
+      headers: { Authorization: `Bearer ${accessToken}` }
+    });
+    const profile = await profileRes.json();
+    if (!profileRes.ok || !profile.email || profile.email_verified === false) {
+      return res.status(401).json({ error: "Unable to verify Google account" });
+    }
+
+    let user = await Student.findOne({ email: profile.email });
+    if (user) {
+      user.full_name = user.full_name || profile.name || profile.email;
+      user.profile_img = user.profile_img || profile.picture || "";
+      user.google_sub = user.google_sub || profile.sub || "";
+      const providers = new Set((user.auth_provider || "password").split(",").filter(Boolean));
+      providers.add("google");
+      user.auth_provider = Array.from(providers).join(",");
+      if (!user.course && course) user.course = course;
+      await user.save();
+    } else {
+      if (!course) return res.status(400).json({ error: "Please select your course" });
+      user = new Student({
+        full_name: profile.name || profile.email,
+        email: profile.email,
+        password: `google-${profile.sub}`,
+        course,
+        profile_img: profile.picture || "",
+        google_sub: profile.sub || "",
+        auth_provider: "google"
+      });
+      await user.save();
+    }
+
+    res.json({ status: "success", user });
+  } catch (err) {
+    console.error("Google Auth Error:", err);
+    res.status(500).json({ error: "Google login failed" });
+  }
+});
+
+// Get Questions by Course (Cached & Lean for fast response)
 app.get("/get-questions", async (req, res) => {
   const { course } = req.query;
+  if (!course) return res.status(400).json({ error: "Course parameter is required" });
+
+  const cached = getCachedQuestions(course);
+  if (cached) {
+    res.setHeader("X-Cache", "HIT");
+    return res.json(cached);
+  }
+
   try {
-    const questions = await Question.find({ course: course });
+    const questions = await Question.find({ course: course }).lean();
+    setCachedQuestions(course, questions);
+    res.setHeader("X-Cache", "MISS");
     res.json(questions);
   } catch (err) {
     res.status(500).json({ error: "Database Error" });
@@ -129,11 +225,11 @@ app.post("/save-result", async (req, res) => {
   }
 });
 
-// Get User Results
+// Get User Results (Lean for speed)
 app.get("/get-result", async (req, res) => {
   const { email } = req.query;
   try {
-    const results = await Result.find({ student_email: email }).sort({ exam_date: -1 });
+    const results = await Result.find({ student_email: email }).sort({ exam_date: -1 }).lean();
     res.json(results);
   } catch (err) {
     res.status(500).json({ error: "Fetch error" });
@@ -142,10 +238,10 @@ app.get("/get-result", async (req, res) => {
 
 /* ================= ADMIN ROUTES ================= */
 
-// Get all users
+// Get all users (Lean)
 app.get("/admin/users", async (req, res) => {
   try {
-    const users = await Student.find({}, "-password").sort({ createdAt: -1 });
+    const users = await Student.find({}, "-password").sort({ createdAt: -1 }).lean();
     res.json(users);
   } catch (err) {
     res.status(500).json({ error: "Failed to fetch users" });
@@ -162,10 +258,10 @@ app.delete("/admin/users/:id", async (req, res) => {
   }
 });
 
-// Get all results
+// Get all results (Lean)
 app.get("/admin/results", async (req, res) => {
   try {
-    const results = await Result.find().sort({ exam_date: -1 });
+    const results = await Result.find().sort({ exam_date: -1 }).lean();
     res.json(results);
   } catch (err) {
     res.status(500).json({ error: "Failed to fetch results" });
@@ -182,10 +278,10 @@ app.delete("/admin/results/:id", async (req, res) => {
   }
 });
 
-// Manage Questions (Get All)
+// Manage Questions (Get All, Lean)
 app.get("/admin/questions", async (req, res) => {
   try {
-    const questions = await Question.find().limit(100);
+    const questions = await Question.find().limit(100).lean();
     res.json(questions);
   } catch (err) {
     res.status(500).json({ error: "Failed to fetch questions" });

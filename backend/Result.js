@@ -13,4 +13,9 @@ const resultSchema = new mongoose.Schema({
   collection: 'Results' // Match your Atlas collection name exactly
 });
 
+// Indexes for fast result lookups and score history queries
+resultSchema.index({ student_email: 1, course: 1 });
+resultSchema.index({ student_email: 1, exam_date: -1 });
+
 module.exports = mongoose.model("Result", resultSchema);
+
