@@ -41,26 +41,22 @@ function handleRoute() {
     const { page, params } = getHashParams();
     const targetPage = pages.includes(page) ? page : 'home';
 
-    // Hide all pages
-    document.querySelectorAll('.spa-page').forEach(p => {
-        p.classList.remove('active');
-        p.style.display = 'none';
+    // Fast switch: deactivate inactive pages, activate target page via CSS
+    document.querySelectorAll('.spa-page.active').forEach(p => {
+        if (p.id !== `page-${targetPage}`) {
+            p.classList.remove('active');
+            p.style.display = ''; // Clear any inline styles
+        }
     });
 
-    // Show target page
     const el = document.getElementById(`page-${targetPage}`);
     if (el) {
+        el.style.display = ''; // Let CSS rule handle display:block or display:flex
         el.classList.add('active');
-        // Flex pages need display:flex, others display:block
-        if (['instruction', 'test', 'result'].includes(targetPage)) {
-            el.style.display = 'flex';
-        } else {
-            el.style.display = 'block';
-        }
     }
 
-    // Scroll to top
-    window.scrollTo(0, 0);
+    // Scroll to top instantly
+    window.scrollTo({ top: 0, behavior: 'instant' });
 
     // Initialize page logic
     currentPage = targetPage;
@@ -400,42 +396,62 @@ function showSection(sectionId, ev) {
     }
 }
 
-async function loadDashboardStats(student) {
+function renderDashboardResults(results) {
     const resultBody = document.getElementById("result-history");
     const totalExamsEl = document.getElementById("total-exams");
     const avgScoreEl = document.getElementById("avg-score");
+    if (!results || !results.length) return;
 
+    totalExamsEl.innerText = results.length;
+    let totalPercent = 0;
+    const subjectScores = {};
+
+    resultBody.innerHTML = results.map(r => {
+        const percent = ((r.score / r.total) * 100).toFixed(0);
+        totalPercent += parseInt(percent);
+        if (!subjectScores[r.course]) subjectScores[r.course] = [];
+        subjectScores[r.course].push(parseInt(percent));
+        const color = percent >= 40 ? 'success' : 'danger';
+        return `<tr>
+            <td><div class="fw-bold">${r.course}</div></td>
+            <td>${r.score} / ${r.total} <small class="text-muted">(${percent}%)</small></td>
+            <td><span class="badge bg-${color}">${percent >= 40 ? 'Pass' : 'Fail'}</span></td>
+            <td>${new Date(r.exam_date).toLocaleDateString()}</td>
+        </tr>`;
+    }).join('');
+
+    avgScoreEl.innerText = (totalPercent / results.length).toFixed(0) + "%";
+
+    const labels = Object.keys(subjectScores);
+    const data = labels.map(l => {
+        const arr = subjectScores[l];
+        return (arr.reduce((a, b) => a + b, 0) / arr.length).toFixed(0);
+    });
+    renderPerformanceChart(labels, data);
+}
+
+async function loadDashboardStats(student) {
+    const cacheKey = `dashboard_results_${student.email}`;
+
+    // Instant render from session cache for zero-wait transition
+    try {
+        const cached = sessionStorage.getItem(cacheKey);
+        if (cached) {
+            const parsed = JSON.parse(cached);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+                renderDashboardResults(parsed);
+            }
+        }
+    } catch (e) {}
+
+    // Background fetch to ensure newest results are always synced
     try {
         const res = await fetch(`${window.API_URL}/get-result?email=${encodeURIComponent(student.email)}`);
         const results = await res.json();
 
-        if (results && results.length > 0) {
-            totalExamsEl.innerText = results.length;
-            let totalPercent = 0;
-            const subjectScores = {};
-
-            resultBody.innerHTML = results.map(r => {
-                const percent = ((r.score / r.total) * 100).toFixed(0);
-                totalPercent += parseInt(percent);
-                if (!subjectScores[r.course]) subjectScores[r.course] = [];
-                subjectScores[r.course].push(parseInt(percent));
-                const color = percent >= 40 ? 'success' : 'danger';
-                return `<tr>
-                    <td><div class="fw-bold">${r.course}</div></td>
-                    <td>${r.score} / ${r.total} <small class="text-muted">(${percent}%)</small></td>
-                    <td><span class="badge bg-${color}">${percent >= 40 ? 'Pass' : 'Fail'}</span></td>
-                    <td>${new Date(r.exam_date).toLocaleDateString()}</td>
-                </tr>`;
-            }).join('');
-
-            avgScoreEl.innerText = (totalPercent / results.length).toFixed(0) + "%";
-
-            const labels = Object.keys(subjectScores);
-            const data = labels.map(l => {
-                const arr = subjectScores[l];
-                return (arr.reduce((a, b) => a + b, 0) / arr.length).toFixed(0);
-            });
-            renderPerformanceChart(labels, data);
+        if (Array.isArray(results) && results.length > 0) {
+            sessionStorage.setItem(cacheKey, JSON.stringify(results));
+            renderDashboardResults(results);
         }
     } catch (err) { console.error(err); }
 }
@@ -474,8 +490,7 @@ function initSubjects() {
     // Welcome message
     if (student) {
         const header = document.querySelector("#page-subjects .navbar-dashboard .container");
-        // Remove old welcome message if exists
-        const oldMsg = header.querySelector('.welcome-msg');
+        const oldMsg = header ? header.querySelector('.welcome-msg') : null;
         if (oldMsg) oldMsg.remove();
         if (header) {
             const welcomeMsg = document.createElement("p");
@@ -485,7 +500,11 @@ function initSubjects() {
         }
     }
 
-    // Button setup
+    // Set cards visible immediately with zero transition delay
+    const cards = document.querySelectorAll("#page-subjects .subject-card");
+    cards.forEach(card => card.classList.add("revealed"));
+
+    // Fast Button setup without destructive DOM cloning
     const buttons = document.querySelectorAll("#page-subjects .subject-card button");
     buttons.forEach(btn => {
         if (!student) {
@@ -493,34 +512,17 @@ function initSubjects() {
             btn.innerText = "Login to Start";
         } else {
             btn.disabled = false;
-            // Restore original text if was previously disabled
             if (btn.innerText === "Login to Start") btn.innerText = "Start Test";
         }
-        // Remove old listeners by cloning
-        const newBtn = btn.cloneNode(true);
-        btn.parentNode.replaceChild(newBtn, btn);
-        newBtn.addEventListener("mouseenter", prewarmBackend);
-        newBtn.addEventListener("click", () => {
-            const course = newBtn.getAttribute("data-course");
-            navigateTo(`#test?course=${encodeURIComponent(course)}`);
-        });
-    });
 
-    // Intersection Observer for card reveal animation
-    const observerOptions = { threshold: 0.1, rootMargin: "0px 0px -50px 0px" };
-    const observer = new IntersectionObserver((entries) => {
-        entries.forEach((entry, index) => {
-            if (entry.isIntersecting) {
-                setTimeout(() => { entry.target.classList.add("revealed"); }, index * 100);
-                observer.unobserve(entry.target);
-            }
-        });
-    }, observerOptions);
-
-    const cards = document.querySelectorAll("#page-subjects .subject-card");
-    cards.forEach(card => {
-        card.classList.remove("revealed");
-        observer.observe(card);
+        if (!btn.dataset.bound) {
+            btn.dataset.bound = "true";
+            btn.addEventListener("mouseenter", prewarmBackend);
+            btn.addEventListener("click", () => {
+                const course = btn.getAttribute("data-course");
+                navigateTo(`#test?course=${encodeURIComponent(course)}`);
+            });
+        }
     });
 }
 
@@ -682,6 +684,7 @@ async function submitTest() {
         });
         const data = await res.json();
         if (data.status === "success") {
+            try { sessionStorage.removeItem(`dashboard_results_${student.email}`); } catch (e) {}
             navigateTo('#result');
         } else { alert("Submission failed!"); }
     } catch (err) {
