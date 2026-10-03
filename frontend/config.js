@@ -5,7 +5,7 @@ const API_URL = "https://examportal-backend-fakr.onrender.com";
 // ⚠️  Deploy karne ke baad yahan apna Worker URL daalo
 // Format: https://examportal-questions.<your-subdomain>.workers.dev
 // Jab tak deploy nahi hota, Render backend use hoga automatically
-const QUESTIONS_WORKER_URL = ""; // ← Worker URL yahan daalo deploy ke baad
+const QUESTIONS_WORKER_URL = "https://examportal.sumitdwivedi681.workers.dev";
 
 const GOOGLE_CLIENT_ID = "PASTE_YOUR_GOOGLE_CLIENT_ID_HERE";
 
