@@ -559,11 +559,11 @@ async function fetchQuestionsWithCache(courseName) {
     // Fetch from backend with 1 retry for cold start resilience
     let res;
     try {
-        res = await fetch(`${window.API_URL}/get-questions?course=${encodeURIComponent(courseName)}`);
+        res = await fetch(`${window.QUESTIONS_URL}/get-questions?course=${encodeURIComponent(courseName)}`);
     } catch (fetchErr) {
         // Retry once after 2s if backend was waking up
         await new Promise(r => setTimeout(r, 2000));
-        res = await fetch(`${window.API_URL}/get-questions?course=${encodeURIComponent(courseName)}`);
+        res = await fetch(`${window.QUESTIONS_URL}/get-questions?course=${encodeURIComponent(courseName)}`);
     }
 
     if (!res.ok) throw new Error(`Server returned ${res.status}`);

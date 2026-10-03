@@ -1,0 +1,12 @@
+name = "examportal-questions"
+main = "questions-worker.js"
+compatibility_date = "2024-01-01"
+workers_dev = true
+
+# Free plan limits:
+# - 100,000 requests/day (free)
+# - 10,000,000 requests/day (paid $5/mo)
+# Your 10K test = nothing for Cloudflare 🚀
+
+[build]
+command = ""
