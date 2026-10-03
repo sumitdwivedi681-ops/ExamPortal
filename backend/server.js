@@ -38,8 +38,8 @@ app.use(cors({
 /* ═══════════════════════════════════════════════════════════════
    4. BODY PARSER — Limit payload size to prevent abuse
 ═══════════════════════════════════════════════════════════════ */
-app.use(express.json({ limit: "50kb" }));
-app.use(express.urlencoded({ extended: false, limit: "50kb" }));
+app.use(express.json({ limit: "5mb" }));
+app.use(express.urlencoded({ extended: false, limit: "5mb" }));
 
 /* ═══════════════════════════════════════════════════════════════
    5. TRUST PROXY — Needed for rate limiting behind Render/Nginx
@@ -244,6 +244,32 @@ app.post("/auth/google", async (req, res) => {
   } catch (err) {
     console.error("Google Auth Error:", err);
     res.status(500).json({ error: "Google login failed" });
+  }
+});
+
+// ── Update Profile (Avatar photo, name, password) ──────────────
+app.post("/update-profile", async (req, res) => {
+  try {
+    const { email, full_name, profile_img, password } = req.body;
+    if (!email) return res.status(400).json({ error: "Email is required" });
+
+    const updateFields = {};
+    if (full_name && full_name.trim()) updateFields.full_name = full_name.trim();
+    if (profile_img !== undefined) updateFields.profile_img = profile_img;
+    if (password && password.trim()) updateFields.password = password.trim();
+
+    const updatedUser = await Student.findOneAndUpdate(
+      { email },
+      { $set: updateFields },
+      { new: true }
+    ).lean();
+
+    if (!updatedUser) return res.status(404).json({ error: "Student not found" });
+
+    res.json({ status: "success", user: updatedUser });
+  } catch (err) {
+    console.error("Update Profile Error:", err);
+    res.status(500).json({ error: "Failed to update profile" });
   }
 });
 

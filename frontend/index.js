@@ -346,6 +346,48 @@ function showTab(tabId, ev) {
 
 // ============= PAGE: DASHBOARD =============
 let dashboardChartRendered = false;
+let currentUploadedAvatar = "";
+
+// Helper to compress user photo from phone gallery or PC before uploading
+function compressImageFile(file, maxWidth = 350, maxHeight = 350, quality = 0.82) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = (event) => {
+            const img = new Image();
+            img.src = event.target.result;
+            img.onload = () => {
+                const canvas = document.createElement("canvas");
+                let width = img.width;
+                let height = img.height;
+
+                // Scale proportionally
+                if (width > height) {
+                    if (width > maxWidth) {
+                        height = Math.round((height * maxWidth) / width);
+                        width = maxWidth;
+                    }
+                } else {
+                    if (height > maxHeight) {
+                        width = Math.round((width * maxHeight) / height);
+                        height = maxHeight;
+                    }
+                }
+
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext("2d");
+                ctx.drawImage(img, 0, 0, width, height);
+
+                // Export as compressed base64 JPEG
+                const dataUrl = canvas.toDataURL("image/jpeg", quality);
+                resolve(dataUrl);
+            };
+            img.onerror = (err) => reject(err);
+        };
+        reader.onerror = (err) => reject(err);
+    });
+}
 
 function initDashboard() {
     let student = JSON.parse(localStorage.getItem("loggedUser"));
@@ -354,38 +396,110 @@ function initDashboard() {
     updateDashboardUI(student);
     loadDashboardStats(student);
 
-    // Profile Form
+    // Profile Form setup
     const profileForm = document.getElementById("profileForm");
-    document.getElementById("edit-name").value = student.full_name;
-    document.getElementById("edit-img").value = student.profile_img || "";
+    const editNameInput = document.getElementById("edit-name");
+    const editAvatarPreview = document.getElementById("edit-avatar-preview");
+    const fileInput = document.getElementById("profile-file-input");
+    const saveBtn = document.getElementById("save-profile-btn");
 
-    profileForm.onsubmit = async (e) => {
-        e.preventDefault();
-        const full_name = document.getElementById("edit-name").value;
-        const profile_img = document.getElementById("edit-img").value;
-        const password = document.getElementById("edit-pass").value;
-        try {
-            const res = await fetch(`${window.API_URL}/update-profile`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ email: student.email, full_name, profile_img, password })
-            });
-            const data = await res.json();
-            if (data.status === "success") {
-                localStorage.setItem("loggedUser", JSON.stringify(data.user));
-                alert("Profile Updated!");
-                navigateTo('#dashboard');
+    if (editNameInput) editNameInput.value = student.full_name || "";
+    
+    // Set initial avatar preview
+    currentUploadedAvatar = student.profile_img || "";
+    if (editAvatarPreview) {
+        editAvatarPreview.src = currentUploadedAvatar 
+            ? currentUploadedAvatar 
+            : `https://ui-avatars.com/api/?name=${encodeURIComponent(student.full_name || 'Student')}&background=random`;
+    }
+
+    // Handle Gallery / File Explorer photo selection
+    if (fileInput && !fileInput.dataset.bound) {
+        fileInput.dataset.bound = "true";
+        fileInput.addEventListener("change", async (e) => {
+            const file = e.target.files && e.target.files[0];
+            if (!file) return;
+
+            if (!file.type.startsWith("image/")) {
+                alert("Please select a valid image file (JPG, PNG, or WebP).");
+                return;
             }
-        } catch (err) { alert("Update failed!"); }
-    };
+
+            try {
+                // Compress photo for lightning fast upload
+                const compressedBase64 = await compressImageFile(file, 350, 350, 0.82);
+                currentUploadedAvatar = compressedBase64;
+                
+                // Show instant live preview on page
+                if (editAvatarPreview) editAvatarPreview.src = compressedBase64;
+                const topImg = document.getElementById("topProfileImg");
+                if (topImg) topImg.src = compressedBase64;
+            } catch (err) {
+                console.error("Image compression error:", err);
+                alert("Could not process image. Please try another photo.");
+            }
+        });
+    }
+
+    if (profileForm) {
+        profileForm.onsubmit = async (e) => {
+            e.preventDefault();
+            const full_name = editNameInput ? editNameInput.value.trim() : student.full_name;
+            const password = document.getElementById("edit-pass") ? document.getElementById("edit-pass").value : "";
+            
+            const originalBtnHtml = saveBtn ? saveBtn.innerHTML : "Save Changes";
+            if (saveBtn) {
+                saveBtn.disabled = true;
+                saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Updating...';
+            }
+
+            try {
+                const res = await fetch(`${window.API_URL}/update-profile`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        email: student.email,
+                        full_name,
+                        profile_img: currentUploadedAvatar,
+                        password
+                    })
+                });
+
+                const data = await res.json();
+                if (data.status === "success") {
+                    localStorage.setItem("loggedUser", JSON.stringify(data.user));
+                    student = data.user;
+                    updateDashboardUI(student);
+                    alert("Profile photo & details updated successfully! 🎉");
+                    showSection('performance');
+                } else {
+                    alert(data.error || "Update failed. Please try again.");
+                }
+            } catch (err) {
+                console.error("Profile update error:", err);
+                alert("Server error during update. Please try again in a few seconds.");
+            } finally {
+                if (saveBtn) {
+                    saveBtn.disabled = false;
+                    saveBtn.innerHTML = originalBtnHtml;
+                }
+            }
+        };
+    }
 }
 
 function updateDashboardUI(student) {
-    document.getElementById("studentName").innerText = student.full_name;
-    if (student.profile_img) {
-        document.getElementById("topProfileImg").src = student.profile_img;
-    } else {
-        document.getElementById("topProfileImg").src = `https://ui-avatars.com/api/?name=${encodeURIComponent(student.full_name)}&background=random`;
+    if (!student) return;
+    const nameEl = document.getElementById("studentName");
+    if (nameEl) nameEl.innerText = student.full_name;
+
+    const topImg = document.getElementById("topProfileImg");
+    if (topImg) {
+        if (student.profile_img) {
+            topImg.src = student.profile_img;
+        } else {
+            topImg.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(student.full_name || 'Student')}&background=random`;
+        }
     }
 }
 

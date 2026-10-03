@@ -366,23 +366,39 @@
     <!-- Profile Section -->
     <div id="section-profile" class="dashboard-section d-none">
         <div class="row justify-content-center">
-            <div class="col-md-6">
-                <div class="glass-card">
-                    <h4 class="fw-bold mb-4">Edit Profile</h4>
-                    <form id="profileForm">
+            <div class="col-md-7 col-lg-6">
+                <div class="glass-card text-center">
+                    <h4 class="fw-bold mb-4 text-start">Edit Profile</h4>
+                    
+                    <!-- Avatar Preview & Gallery Upload Trigger -->
+                    <div class="avatar-upload-wrapper mb-4">
+                        <div class="position-relative d-inline-block">
+                            <img src="https://ui-avatars.com/api/?name=Student&background=random" id="edit-avatar-preview" class="profile-img shadow-sm" alt="Profile Avatar" style="width: 120px; height: 120px; object-fit: cover; border: 4px solid #6366f1;">
+                            <label for="profile-file-input" class="avatar-camera-badge" title="Upload Photo from Gallery / Files" style="position: absolute; bottom: 4px; right: 4px; background: #6366f1; color: white; width: 38px; height: 38px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.25); border: 2px solid white; transition: 0.2s;">
+                                <i class="fas fa-camera"></i>
+                            </label>
+                        </div>
+                        <input type="file" id="profile-file-input" accept="image/*" class="d-none">
+                        <div class="mt-2">
+                            <label for="profile-file-input" class="btn btn-outline-primary btn-sm rounded-pill px-3 py-1 fw-bold mt-2" style="cursor: pointer;">
+                                <i class="fas fa-image me-1"></i> Choose from Gallery / Files
+                            </label>
+                            <div class="small text-muted mt-1" style="font-size: 0.8rem;">Supports JPG, PNG, WebP from phone or PC</div>
+                        </div>
+                    </div>
+
+                    <form id="profileForm" class="text-start">
                         <div class="mb-3">
                             <label class="form-label small fw-bold">FULL NAME</label>
                             <input type="text" id="edit-name" class="form-control rounded-3 py-2" required>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label small fw-bold">PROFILE IMAGE URL</label>
-                            <input type="text" id="edit-img" class="form-control rounded-3 py-2" placeholder="https://example.com/image.jpg">
-                        </div>
-                        <div class="mb-3">
                             <label class="form-label small fw-bold">NEW PASSWORD</label>
                             <input type="password" id="edit-pass" class="form-control rounded-3 py-2" placeholder="Leave blank to keep same">
                         </div>
-                        <button type="submit" class="btn btn-primary w-100 rounded-3 py-2 mt-3 fw-bold">Save Changes</button>
+                        <button type="submit" id="save-profile-btn" class="btn btn-primary w-100 rounded-3 py-2 mt-3 fw-bold">
+                            <i class="fas fa-check-circle me-1"></i> Save Changes
+                        </button>
                     </form>
                 </div>
             </div>
@@ -401,13 +417,12 @@
             <div class="col-md-2 mb-4">
                 <h5 class="fw-bold text-white mb-4 text-start">Explore</h5>
                 <a href="#subjects" class="text-decoration-none text-muted d-block mb-2">Start Test</a>
-                <a href="admin.html" class="text-decoration-none text-muted d-block mb-2">Admin Panel</a>
                 <a href="#home" class="text-decoration-none text-muted d-block mb-2">Home</a>
             </div>
             <div class="col-md-3 mb-4">
                 <h5 class="fw-bold text-white mb-4">Feedback</h5>
                 <p class="small text-muted mb-3">Help us improve! Send your feedback or queries directly to our team.</p>
-                <a href="mailto:sumitdwivedi681@gmail.com" id="feedbackBtn-home" class="feedback-link class="btn btn-primary btn-sm rounded-pill px-4">Send Feedback</a>
+                <a href="mailto:sumitdwivedi681@gmail.com" id="feedbackBtn-dashboard" class="feedback-link btn btn-primary btn-sm rounded-pill px-4">Send Feedback</a>
             </div>
             <div class="col-md-3 mb-4">
                 <h5 class="fw-bold text-white mb-4 text-start">Contact Developer</h5>
