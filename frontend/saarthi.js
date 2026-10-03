@@ -68,13 +68,13 @@
                 <div class="saarthi-messages" id="saarthi-messages">
                     <!-- Initial Welcome Message -->
                     <div class="saarthi-msg saarthi-msg-bot">
-                        नमस्ते! 🙏 Main <strong>Saarthi</strong> hoon — Elite Exam Portal ka aapka personal AI Guide.<br><br>
-                        Main aapko test dene, subjects samajhne aur creator <strong>Sumit Dwivedi</strong> ke baare me bata sakta hoon. Aap kisi bhi bhasha (Hindi / English / Hinglish) me puch sakte hain!
+                        नमस्ते! 🙏 Main <strong>Saarthi</strong> hoon — Elite Exam Portal ka aapka personal AI Academic Guide. 📚<br><br>
+                        Main aapki padhai, practice tests dene aur sabhi computer science subjects ko samajhne me madad karunga. Aap world ki kisi bhi bhasha (Hindi, English, Hinglish, Spanish, French, Bengali, etc.) me sawaal puch sakte hain!
                         
                         <div class="saarthi-chips mt-3">
                             <button class="saarthi-chip" onclick="window.sendSaarthiQuick('Website kaise use karein?')">🚀 Website Guide</button>
                             <button class="saarthi-chip" onclick="window.sendSaarthiQuick('Available subjects ke baare me batao')">📚 All Subjects</button>
-                            <button class="saarthi-chip" onclick="window.sendSaarthiQuick('Sumit Dwivedi ke baare me batao')">👨‍💻 About Creator</button>
+                            <button class="saarthi-chip" onclick="window.sendSaarthiQuick('DSA ke baare me batao')">💻 Learn DSA</button>
                             <button class="saarthi-chip" onclick="window.sendSaarthiQuick('DevOps subject chahiye')">💡 Request Subject</button>
                         </div>
                     </div>
@@ -82,7 +82,7 @@
 
                 <!-- Input Footer -->
                 <form class="saarthi-input-bar" id="saarthi-form">
-                    <input type="text" id="saarthi-input" class="saarthi-input" placeholder="Type in Hindi, English, Hinglish..." autocomplete="off" required>
+                    <input type="text" id="saarthi-input" class="saarthi-input" placeholder="Type your question in any language..." autocomplete="off" required>
                     <button type="submit" class="saarthi-send-btn" id="saarthi-send-btn" aria-label="Send">
                         <i class="fas fa-paper-plane"></i>
                     </button>

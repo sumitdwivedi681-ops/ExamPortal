@@ -493,7 +493,11 @@ app.post("/api/saarthi/chat", async (req, res) => {
       return res.status(400).json({ error: "Message is required" });
     }
 
-    const result = processSaarthiMessage(message, { lastSuggestedCourse });
+    const result = await processSaarthiMessage(message, { 
+      lastSuggestedCourse,
+      user_email,
+      user_name
+    });
     
     // Log asynchronously to MongoDB Atlas (keeps response instant)
     const clientIp = req.headers["x-forwarded-for"] || req.socket.remoteAddress || "";
