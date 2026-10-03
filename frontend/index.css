@@ -631,3 +631,163 @@ body { margin: 0; overflow-x: hidden; }
 .spa-footer a.feedback-link {
     display: inline-block;
 }
+
+/* ============================================================
+   CROSS-OS & MOBILE APP-FIRST UI OPTIMIZATIONS
+   Optimized for Android, iOS, iPadOS, macOS, Windows
+   ============================================================ */
+
+/* Touch & Tap responsiveness across all operating systems */
+html {
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+    scroll-behavior: smooth;
+}
+
+body {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    touch-action: manipulation;
+    padding-bottom: env(safe-area-inset-bottom, 0);
+}
+
+button, a, input, select, textarea {
+    touch-action: manipulation;
+    -webkit-appearance: none;
+}
+
+/* Custom sleek scrollbar */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.03);
+}
+::-webkit-scrollbar-thumb {
+    background: rgba(99, 102, 241, 0.3);
+    border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(99, 102, 241, 0.6);
+}
+
+/* Mobile & Tablet Optimizations (< 768px) */
+@media (max-width: 768px) {
+    /* Navbar & Brand */
+    #page-home .navbar {
+        padding: 12px 10px;
+    }
+    #page-home .navbar-brand {
+        font-size: clamp(1.3rem, 6vw, 1.8rem);
+        letter-spacing: 1px;
+    }
+    #page-home .logo-icon {
+        font-size: clamp(1.6rem, 7vw, 2.2rem);
+    }
+    #page-home .navbar-nav .nav-link {
+        margin-left: 0;
+        padding: 8px 12px;
+    }
+
+    /* Hero section */
+    #page-home .hero {
+        padding: 45px 16px;
+    }
+    #page-home .hero h1 {
+        font-size: clamp(1.8rem, 7vw, 2.5rem);
+    }
+    #page-home .hero p {
+        font-size: clamp(0.95rem, 4vw, 1.15rem);
+    }
+
+    /* Forms & Touch Targets */
+    #page-home input,
+    #page-home select,
+    #page-home .home-btn {
+        height: 50px;
+        font-size: 16px; /* Prevents auto-zoom on iOS Safari */
+    }
+
+    /* Test Page Mobile Layout */
+    #page-test {
+        padding: 12px 8px;
+    }
+    #page-test .test-container {
+        padding: 22px 16px;
+        border-radius: 20px;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+    }
+    #page-test .test-container h1 {
+        font-size: 1.5rem;
+        margin-bottom: 20px;
+    }
+    #page-test #question-text {
+        font-size: 1.15rem;
+        line-height: 1.45;
+        margin-bottom: 18px;
+    }
+    #page-test .option-item {
+        padding: 14px 18px;
+        border-radius: 14px;
+        min-height: 52px;
+        display: flex;
+        align-items: center;
+    }
+    #page-test .option-item:hover {
+        transform: none; /* Avoid horizontal viewport wobble on mobile touch */
+        background: #e2e8f0;
+    }
+    #page-test .option-item input[type="radio"] {
+        transform: scale(1.3);
+        margin-right: 12px;
+    }
+    #page-test .controls {
+        margin-top: 25px;
+        gap: 10px;
+    }
+    #page-test .test-btn {
+        padding: 12px 20px;
+        font-size: 0.95rem;
+        flex: 1;
+    }
+
+    /* Result Page Mobile Layout */
+    #page-result {
+        padding: 16px 12px;
+    }
+    #page-result .result-card {
+        padding: 30px 20px;
+        border-radius: 28px;
+    }
+    #page-result .digital-score {
+        font-size: 3.6rem;
+        margin: 10px 0;
+    }
+    #page-result .chart-box {
+        width: 200px;
+        height: 200px;
+        margin: 0 auto 20px;
+    }
+    #page-result .btn-action {
+        width: 100%;
+        margin-bottom: 10px;
+        padding: 14px;
+    }
+
+    /* Dashboard mobile stacking */
+    #page-dashboard .hero-section {
+        padding: 40px 16px;
+        border-radius: 0 0 30px 30px;
+    }
+    #page-dashboard .digital-num {
+        font-size: 2.2rem;
+    }
+
+    /* Footer Mobile */
+    .spa-footer {
+        padding: 40px 16px 20px 16px;
+        margin-top: 50px;
+        text-align: center;
+    }
+}

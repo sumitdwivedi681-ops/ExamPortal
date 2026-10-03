@@ -749,3 +749,55 @@ function initResult() {
         }
     });
 }
+
+
+// ============================================================
+//  STEALTH HIDDEN ADMIN GATEWAY (FOR OWNER ONLY)
+//  Invisible to public users — no buttons, links, or clues
+// ============================================================
+(function initStealthAdmin() {
+    const SECRET_KEY = "sumit_portal_master";
+    function accessAdmin() {
+        sessionStorage.setItem("adminAuthActive", "true");
+        window.location.href = `admin.html?auth=${SECRET_KEY}`;
+    }
+
+    // Method 1: Desktop Shortcut (Ctrl + Shift + A  OR  Ctrl + Alt + A)
+    window.addEventListener('keydown', (e) => {
+        if ((e.ctrlKey && e.shiftKey && (e.key === 'A' || e.key === 'a')) ||
+            (e.ctrlKey && e.altKey && (e.key === 'A' || e.key === 'a'))) {
+            e.preventDefault();
+            accessAdmin();
+        }
+    });
+
+    // Method 2: Mobile / Touch Gesture (Tap Logo 5 times rapidly)
+    let logoTaps = 0;
+    let tapTimeout = null;
+    function handleLogoTap(e) {
+        logoTaps++;
+        clearTimeout(tapTimeout);
+        if (logoTaps >= 5) {
+            logoTaps = 0;
+            if (e && e.preventDefault) e.preventDefault();
+            if (navigator.vibrate) navigator.vibrate([40, 60, 40]);
+            accessAdmin();
+        } else {
+            tapTimeout = setTimeout(() => { logoTaps = 0; }, 2500);
+        }
+    }
+
+    // Attach tap listener to all navbar brands/logos
+    document.addEventListener('DOMContentLoaded', () => {
+        const logos = document.querySelectorAll('.navbar-brand, .logo-icon');
+        logos.forEach(el => {
+            el.addEventListener('click', handleLogoTap);
+        });
+    });
+
+    // Method 3: Secret URL Hash Check (#master-admin-access)
+    if (window.location.hash === '#master-admin-access') {
+        history.replaceState(null, document.title, window.location.pathname);
+        accessAdmin();
+    }
+})();
