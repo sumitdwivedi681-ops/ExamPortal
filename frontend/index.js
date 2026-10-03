@@ -3,17 +3,21 @@
 //  Hash-based router + all page logic merged
 // ============================================================
 
-// Pre-warm backend immediately to eliminate cold-start wait
+// Pre-warm backend & Cloudflare Worker immediately to eliminate cold-start wait
 let isPrewarming = false;
 function prewarmBackend() {
-    if (isPrewarming || !window.API_URL) return;
+    if (isPrewarming) return;
     isPrewarming = true;
     try {
-        fetch(`${window.API_URL}/ping`, { mode: 'cors', cache: 'no-store' })
-            .catch(() => {})
-            .finally(() => { isPrewarming = false; });
+        if (window.API_URL) {
+            fetch(`${window.API_URL}/ping`, { mode: 'cors', cache: 'no-store' }).catch(() => {});
+        }
+        if (window.QUESTIONS_URL && window.QUESTIONS_URL !== window.API_URL) {
+            fetch(`${window.QUESTIONS_URL}/get-questions?course=React`, { mode: 'cors' }).catch(() => {});
+        }
     } catch (e) {
-        isPrewarming = false;
+    } finally {
+        setTimeout(() => { isPrewarming = false; }, 3000);
     }
 }
 prewarmBackend();
@@ -517,7 +521,10 @@ function initSubjects() {
 
         if (!btn.dataset.bound) {
             btn.dataset.bound = "true";
-            btn.addEventListener("mouseenter", prewarmBackend);
+            btn.addEventListener("mouseenter", () => {
+                const course = btn.getAttribute("data-course");
+                if (course) fetchQuestionsWithCache(course).catch(() => {});
+            });
             btn.addEventListener("click", () => {
                 const course = btn.getAttribute("data-course");
                 navigateTo(`#test?course=${encodeURIComponent(course)}`);
@@ -545,9 +552,13 @@ let testCurrentIndex = 0;
 let testAnswers = {};
 let testCourse = '';
 
-// Helper to fetch course questions with sessionStorage caching and retry
+// Helper to fetch course questions with multi-tier caching (Session + LocalStorage + Edge Worker)
 async function fetchQuestionsWithCache(courseName) {
     const cacheKey = `exam_questions_${encodeURIComponent(courseName)}`;
+    const cacheTimeKey = `${cacheKey}_time`;
+    const MAX_CACHE_AGE = 30 * 60 * 1000; // 30 minutes
+
+    // 1. Instant SessionStorage check (0ms)
     try {
         const cached = sessionStorage.getItem(cacheKey);
         if (cached) {
@@ -556,20 +567,38 @@ async function fetchQuestionsWithCache(courseName) {
         }
     } catch (e) {}
 
-    // Fetch from backend with 1 retry for cold start resilience
+    // 2. LocalStorage check (persists across tabs/refreshes - 0ms)
+    try {
+        const localCached = localStorage.getItem(cacheKey);
+        const cachedTime = Number(localStorage.getItem(cacheTimeKey) || 0);
+        if (localCached && (Date.now() - cachedTime < MAX_CACHE_AGE)) {
+            const parsed = JSON.parse(localCached);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+                try { sessionStorage.setItem(cacheKey, localCached); } catch (e) {}
+                return parsed;
+            }
+        }
+    } catch (e) {}
+
+    // 3. Fetch from Cloudflare Edge Worker
+    const qUrl = window.QUESTIONS_URL || window.API_URL;
     let res;
     try {
-        res = await fetch(`${window.QUESTIONS_URL}/get-questions?course=${encodeURIComponent(courseName)}`);
+        res = await fetch(`${qUrl}/get-questions?course=${encodeURIComponent(courseName)}`);
     } catch (fetchErr) {
-        // Retry once after 2s if backend was waking up
-        await new Promise(r => setTimeout(r, 2000));
-        res = await fetch(`${window.QUESTIONS_URL}/get-questions?course=${encodeURIComponent(courseName)}`);
+        await new Promise(r => setTimeout(r, 1000));
+        res = await fetch(`${qUrl}/get-questions?course=${encodeURIComponent(courseName)}`);
     }
 
     if (!res.ok) throw new Error(`Server returned ${res.status}`);
     const data = await res.json();
     if (Array.isArray(data) && data.length > 0) {
-        try { sessionStorage.setItem(cacheKey, JSON.stringify(data)); } catch (e) {}
+        const str = JSON.stringify(data);
+        try { sessionStorage.setItem(cacheKey, str); } catch (e) {}
+        try {
+            localStorage.setItem(cacheKey, str);
+            localStorage.setItem(cacheTimeKey, String(Date.now()));
+        } catch (e) {}
     }
     return data;
 }
