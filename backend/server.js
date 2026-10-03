@@ -3,6 +3,9 @@ const mongoose = require("mongoose");
 const cors = require("cors");
 const dotenv = require("dotenv");
 const compression = require("compression");
+const rateLimit = require("express-rate-limit");
+const helmet = require("helmet");
+const os = require("os");
 
 dotenv.config();
 
@@ -13,75 +16,155 @@ const connectDB = require("./config/db");
 
 const app = express();
 
-// High performance Gzip compression for all responses
-app.use(compression());
+/* ═══════════════════════════════════════════════════════════════
+   1. SECURITY — Helmet (HTTP security headers)
+═══════════════════════════════════════════════════════════════ */
+app.use(helmet({ crossOriginResourcePolicy: false }));
 
-// SUPER OPEN CORS FOR PRODUCTION
+/* ═══════════════════════════════════════════════════════════════
+   2. COMPRESSION — Gzip all responses (saves 60-80% bandwidth)
+═══════════════════════════════════════════════════════════════ */
+app.use(compression({ level: 6, threshold: 1024 }));
+
+/* ═══════════════════════════════════════════════════════════════
+   3. CORS — Open for all origins (production CDN-friendly)
+═══════════════════════════════════════════════════════════════ */
 app.use(cors({
   origin: "*",
   methods: ["GET", "POST", "DELETE", "PUT"],
   credentials: true
 }));
 
-app.use(express.json());
+/* ═══════════════════════════════════════════════════════════════
+   4. BODY PARSER — Limit payload size to prevent abuse
+═══════════════════════════════════════════════════════════════ */
+app.use(express.json({ limit: "50kb" }));
+app.use(express.urlencoded({ extended: false, limit: "50kb" }));
 
-// Connect Database
+/* ═══════════════════════════════════════════════════════════════
+   5. TRUST PROXY — Needed for rate limiting behind Render/Nginx
+═══════════════════════════════════════════════════════════════ */
+app.set("trust proxy", 1);
+
+/* ═══════════════════════════════════════════════════════════════
+   6. RATE LIMITING — DDoS protection per IP
+═══════════════════════════════════════════════════════════════ */
+
+// General API: 300 requests per minute per IP
+const apiLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 300,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many requests, please try again in a minute." },
+  skip: (req) => req.path === "/ping", // Never rate-limit health checks
+});
+
+// Auth routes: stricter — 20 attempts per 15 minutes per IP
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many login attempts. Please wait 15 minutes." },
+});
+
+app.use("/api", apiLimiter);
+app.use("/login", authLimiter);
+app.use("/register", authLimiter);
+app.use("/admin/login", authLimiter);
+
+/* ═══════════════════════════════════════════════════════════════
+   7. IN-MEMORY CACHE — Multi-layer, high-performance cache
+      Layer 1: Questions per course (10-min TTL)
+      Layer 2: Admin results (30-sec TTL)
+      Layer 3: All users list (30-sec TTL)
+═══════════════════════════════════════════════════════════════ */
+class TTLCache {
+  constructor(defaultTTL = 60000) {
+    this.store = new Map();
+    this.defaultTTL = defaultTTL;
+    // Auto-purge expired entries every 2 minutes
+    setInterval(() => this._purge(), 2 * 60 * 1000);
+  }
+
+  set(key, value, ttl = this.defaultTTL) {
+    this.store.set(key, { value, expires: Date.now() + ttl });
+  }
+
+  get(key) {
+    const entry = this.store.get(key);
+    if (!entry) return null;
+    if (Date.now() > entry.expires) { this.store.delete(key); return null; }
+    return entry.value;
+  }
+
+  invalidate(key) { this.store.delete(key); }
+
+  _purge() {
+    const now = Date.now();
+    for (const [k, v] of this.store) {
+      if (now > v.expires) this.store.delete(k);
+    }
+  }
+}
+
+const questionCache = new TTLCache(10 * 60 * 1000);  // 10 min
+const adminCache    = new TTLCache(30 * 1000);         // 30 sec
+
+/* ═══════════════════════════════════════════════════════════════
+   8. DATABASE CONNECTION
+═══════════════════════════════════════════════════════════════ */
 connectDB();
 
-// Admin Settings Schema (Store Password)
+/* ═══════════════════════════════════════════════════════════════
+   9. MODELS & ADMIN INIT
+═══════════════════════════════════════════════════════════════ */
 const AdminSchema = new mongoose.Schema({
   password: { type: String, default: "Admin@123" }
 });
 const AdminSettings = mongoose.model("AdminSettings", AdminSchema);
 
-// Ensure admin password is set and migrated to Admin@123
 async function initAdmin() {
   try {
-    const admin = await AdminSettings.findOne();
+    const admin = await AdminSettings.findOne().lean();
     if (!admin) {
       await new AdminSettings({ password: "Admin@123" }).save();
       console.log("Admin password initialized to: Admin@123");
     } else if (admin.password === "admin" || admin.password === "admin123") {
-      admin.password = "Admin@123";
-      await admin.save();
+      await AdminSettings.updateOne({}, { password: "Admin@123" });
       console.log("Admin password migrated to: Admin@123");
     }
   } catch (err) {
-    console.error("Failed to init admin password:", err.message);
+    console.error("Failed to init admin:", err.message);
   }
 }
 initAdmin();
 
-// In-memory course questions cache with 10-minute TTL for lightning-fast test loading (<5ms)
-const questionCache = new Map();
-const QUESTION_CACHE_TTL_MS = 10 * 60 * 1000;
+/* ═══════════════════════════════════════════════════════════════
+   ROUTES
+═══════════════════════════════════════════════════════════════ */
 
-function getCachedQuestions(course) {
-  const cached = questionCache.get(course);
-  if (cached && (Date.now() - cached.timestamp < QUESTION_CACHE_TTL_MS)) {
-    return cached.data;
-  }
-  return null;
-}
-
-function setCachedQuestions(course, data) {
-  questionCache.set(course, { data, timestamp: Date.now() });
-}
-
-// Test Route to check if server is live (with pre-warm header)
+// ── Health Check (never cached, never rate-limited) ─────────────
 app.get("/ping", (req, res) => {
-  res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-  res.json({ status: "alive", message: "Exam Portal Backend is working!", timestamp: Date.now() });
+  res.setHeader("Cache-Control", "no-store");
+  res.json({
+    status: "alive",
+    message: "Exam Portal Backend is working!",
+    worker: process.pid,
+    uptime: process.uptime().toFixed(0) + "s",
+    timestamp: Date.now()
+  });
 });
 
-
-/* ================= ROUTES ================= */
-
-// Register Student
+// ── Register ────────────────────────────────────────────────────
 app.post("/register", async (req, res) => {
   try {
     const { full_name, email, password, course } = req.body;
-    const existing = await Student.findOne({ email });
+    if (!full_name || !email || !password || !course)
+      return res.status(400).json({ error: "All fields are required" });
+
+    const existing = await Student.findOne({ email }).lean();
     if (existing) return res.status(400).json({ error: "Email already exists" });
 
     const newStudent = new Student({ full_name, email, password, course });
@@ -93,17 +176,14 @@ app.post("/register", async (req, res) => {
   }
 });
 
-// Login Student
+// ── Login ───────────────────────────────────────────────────────
 app.post("/login", async (req, res) => {
   const { email, password } = req.body;
-  console.log(`Login attempt for: ${email}`);
   try {
-    const user = await Student.findOne({ email: email, password: password });
+    const user = await Student.findOne({ email, password }).lean();
     if (user) {
-      console.log("Login successful!");
       res.json({ status: "success", user });
     } else {
-      console.log("Login failed: User not found or password mismatch");
       res.status(401).json({ error: "Invalid credentials" });
     }
   } catch (err) {
@@ -112,7 +192,7 @@ app.post("/login", async (req, res) => {
   }
 });
 
-// Google Student Login/Register
+// ── Google Auth ─────────────────────────────────────────────────
 app.post("/auth/google", async (req, res) => {
   try {
     const { accessToken, course, clientId } = req.body;
@@ -160,7 +240,6 @@ app.post("/auth/google", async (req, res) => {
       });
       await user.save();
     }
-
     res.json({ status: "success", user });
   } catch (err) {
     console.error("Google Auth Error:", err);
@@ -168,20 +247,31 @@ app.post("/auth/google", async (req, res) => {
   }
 });
 
-// Get Questions by Course (Cached & Lean for fast response)
+// ── Get Questions (Cached with ETag) ───────────────────────────
 app.get("/get-questions", async (req, res) => {
   const { course } = req.query;
   if (!course) return res.status(400).json({ error: "Course parameter is required" });
 
-  const cached = getCachedQuestions(course);
+  // Set aggressive cache headers for CDN (Cloudflare etc.)
+  res.setHeader("Cache-Control", "public, max-age=600, stale-while-revalidate=60");
+  res.setHeader("Vary", "Accept-Encoding");
+
+  // Serve from in-memory cache instantly
+  const cached = questionCache.get(course);
   if (cached) {
+    // ETag for conditional GET (304 Not Modified) — saves bandwidth
+    const etag = `"q-${course}-${cached.length}"`;
+    if (req.headers["if-none-match"] === etag) {
+      return res.status(304).end();
+    }
     res.setHeader("X-Cache", "HIT");
+    res.setHeader("ETag", etag);
     return res.json(cached);
   }
 
   try {
-    const questions = await Question.find({ course: course }).lean();
-    setCachedQuestions(course, questions);
+    const questions = await Question.find({ course }).select("-__v").lean();
+    questionCache.set(course, questions);
     res.setHeader("X-Cache", "MISS");
     res.json(questions);
   } catch (err) {
@@ -189,34 +279,30 @@ app.get("/get-questions", async (req, res) => {
   }
 });
 
-// Save Result (Highest Score Only)
+// ── Save Result ─────────────────────────────────────────────────
 app.post("/save-result", async (req, res) => {
   try {
     const { email, course, score, total } = req.body;
-    
-    // 1. Check if a result already exists for this student and course
-    const existingResult = await Result.findOne({ student_email: email, course: course });
+    if (!email || !course || score === undefined || !total)
+      return res.status(400).json({ error: "Missing required fields" });
+
+    const existingResult = await Result.findOne({ student_email: email, course }).lean();
 
     if (existingResult) {
-      // 2. Only update if the NEW score is better than the OLD score
       if (score > existingResult.score) {
-        existingResult.score = score;
-        existingResult.total = total;
-        existingResult.exam_date = Date.now();
-        await existingResult.save();
+        await Result.updateOne(
+          { student_email: email, course },
+          { score, total, exam_date: Date.now() }
+        );
+        // Invalidate admin results cache on new high score
+        adminCache.invalidate("all-results");
         return res.json({ status: "success", message: "New High Score saved!" });
       } else {
         return res.json({ status: "success", message: "Previous score was better, kept old record." });
       }
     } else {
-      // 3. No existing record, so save this one
-      const newResult = new Result({
-        student_email: email,
-        course,
-        score,
-        total
-      });
-      await newResult.save();
+      await Result.create({ student_email: email, course, score, total });
+      adminCache.invalidate("all-results");
       res.json({ status: "success", message: "First attempt saved!" });
     }
   } catch (err) {
@@ -225,74 +311,55 @@ app.post("/save-result", async (req, res) => {
   }
 });
 
-// Get User Results (Lean for speed)
+// ── Get User Results ────────────────────────────────────────────
 app.get("/get-result", async (req, res) => {
   const { email } = req.query;
+  if (!email) return res.status(400).json({ error: "Email required" });
   try {
-    const results = await Result.find({ student_email: email }).sort({ exam_date: -1 }).lean();
+    const results = await Result.find({ student_email: email })
+      .sort({ exam_date: -1 })
+      .select("-__v")
+      .lean();
     res.json(results);
   } catch (err) {
     res.status(500).json({ error: "Fetch error" });
   }
 });
 
-/* ================= ADMIN ROUTES ================= */
-
-// Get all users (Lean)
-app.get("/admin/users", async (req, res) => {
+// ── Update Profile ──────────────────────────────────────────────
+app.post("/update-profile", async (req, res) => {
   try {
-    const users = await Student.find({}, "-password").sort({ createdAt: -1 }).lean();
-    res.json(users);
+    const { email, full_name, password, profile_img } = req.body;
+    if (!email) return res.status(400).json({ error: "Email required" });
+
+    const update = {};
+    if (full_name) update.full_name = full_name;
+    if (password)  update.password  = password;
+    if (profile_img) update.profile_img = profile_img;
+
+    const user = await Student.findOneAndUpdate({ email }, update, { new: true }).lean();
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    // Invalidate users cache
+    adminCache.invalidate("all-users");
+    res.json({ status: "success", user });
   } catch (err) {
-    res.status(500).json({ error: "Failed to fetch users" });
+    res.status(500).json({ error: "Update failed" });
   }
 });
 
-// Delete a user
-app.delete("/admin/users/:id", async (req, res) => {
-  try {
-    await Student.findByIdAndDelete(req.params.id);
-    res.json({ status: "success", message: "User deleted" });
-  } catch (err) {
-    res.status(500).json({ error: "Delete failed" });
-  }
-});
+/* ═══════════════════════════════════════════════════════════════
+   ADMIN ROUTES
+═══════════════════════════════════════════════════════════════ */
 
-// Get all results (Lean)
-app.get("/admin/results", async (req, res) => {
-  try {
-    const results = await Result.find().sort({ exam_date: -1 }).lean();
-    res.json(results);
-  } catch (err) {
-    res.status(500).json({ error: "Failed to fetch results" });
-  }
-});
-
-// Delete a result
-app.delete("/admin/results/:id", async (req, res) => {
-  try {
-    await Result.findByIdAndDelete(req.params.id);
-    res.json({ status: "success", message: "Result deleted" });
-  } catch (err) {
-    res.status(500).json({ error: "Delete failed" });
-  }
-});
-
-// Manage Questions (Get All, Lean)
-app.get("/admin/questions", async (req, res) => {
-  try {
-    const questions = await Question.find().limit(100).lean();
-    res.json(questions);
-  } catch (err) {
-    res.status(500).json({ error: "Failed to fetch questions" });
-  }
-});
-
-// Admin Login (Verify with DB)
+// ── Admin Login ─────────────────────────────────────────────────
 app.post("/admin/login", async (req, res) => {
   try {
     const { password } = req.body;
-    const admin = await AdminSettings.findOne();
+    const cached = adminCache.get("admin-settings");
+    const admin = cached || await AdminSettings.findOne().lean();
+    if (!cached && admin) adminCache.set("admin-settings", admin, 5 * 60 * 1000);
+
     if (admin && admin.password === password) {
       res.json({ status: "success" });
     } else {
@@ -303,43 +370,112 @@ app.post("/admin/login", async (req, res) => {
   }
 });
 
-// Update Admin Password
+// ── Update Admin Password ───────────────────────────────────────
 app.post("/admin/update-password", async (req, res) => {
   try {
     const { newPassword } = req.body;
+    if (!newPassword || newPassword.length < 6)
+      return res.status(400).json({ error: "Password must be at least 6 characters" });
+
     const admin = await AdminSettings.findOne();
-    if (admin) {
-      admin.password = newPassword;
-      await admin.save();
-      res.json({ status: "success", message: "Admin password updated!" });
-    } else {
-      res.status(404).json({ error: "Admin settings not found" });
-    }
+    if (!admin) return res.status(404).json({ error: "Admin settings not found" });
+
+    admin.password = newPassword;
+    await admin.save();
+    adminCache.invalidate("admin-settings"); // Bust cache on change
+    res.json({ status: "success", message: "Admin password updated!" });
   } catch (err) {
     res.status(500).json({ error: "Update failed" });
   }
 });
 
-/* ================= SERVER ================= */
-const PORT = process.env.PORT || 5000;
-// Update Profile
-app.post("/update-profile", async (req, res) => {
+// ── Get All Users (Cached) ──────────────────────────────────────
+app.get("/admin/users", async (req, res) => {
   try {
-    const { email, full_name, password, profile_img } = req.body;
-    const user = await Student.findOne({ email });
-    if (!user) return res.status(404).json({ error: "User not found" });
+    const cached = adminCache.get("all-users");
+    if (cached) return res.json(cached);
 
-    if (full_name) user.full_name = full_name;
-    if (password) user.password = password;
-    if (profile_img) user.profile_img = profile_img;
-
-    await user.save();
-    res.json({ status: "success", user });
+    const users = await Student.find({}, "-password -__v").sort({ createdAt: -1 }).lean();
+    adminCache.set("all-users", users);
+    res.json(users);
   } catch (err) {
-    res.status(500).json({ error: "Update failed" });
+    res.status(500).json({ error: "Failed to fetch users" });
   }
 });
 
-app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
+// ── Delete User ─────────────────────────────────────────────────
+app.delete("/admin/users/:id", async (req, res) => {
+  try {
+    await Student.findByIdAndDelete(req.params.id);
+    adminCache.invalidate("all-users");
+    res.json({ status: "success", message: "User deleted" });
+  } catch (err) {
+    res.status(500).json({ error: "Delete failed" });
+  }
 });
+
+// ── Get All Results (Cached) ────────────────────────────────────
+app.get("/admin/results", async (req, res) => {
+  try {
+    const cached = adminCache.get("all-results");
+    if (cached) return res.json(cached);
+
+    const results = await Result.find().sort({ exam_date: -1 }).select("-__v").lean();
+    adminCache.set("all-results", results);
+    res.json(results);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch results" });
+  }
+});
+
+// ── Delete Result ───────────────────────────────────────────────
+app.delete("/admin/results/:id", async (req, res) => {
+  try {
+    await Result.findByIdAndDelete(req.params.id);
+    adminCache.invalidate("all-results");
+    res.json({ status: "success", message: "Result deleted" });
+  } catch (err) {
+    res.status(500).json({ error: "Delete failed" });
+  }
+});
+
+// ── Get Questions (Admin, Cached) ───────────────────────────────
+app.get("/admin/questions", async (req, res) => {
+  try {
+    const cached = adminCache.get("admin-questions");
+    if (cached) return res.json(cached);
+
+    const questions = await Question.find().limit(100).select("-__v").lean();
+    adminCache.set("admin-questions", questions);
+    res.json(questions);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch questions" });
+  }
+});
+
+/* ═══════════════════════════════════════════════════════════════
+   GLOBAL ERROR HANDLER — Never crash on unhandled errors
+═══════════════════════════════════════════════════════════════ */
+app.use((err, req, res, next) => {
+  console.error("Unhandled Error:", err);
+  res.status(500).json({ error: "Internal Server Error" });
+});
+
+// Catch unhandled promise rejections — keep worker alive
+process.on("unhandledRejection", (reason) => {
+  console.error("Unhandled Rejection:", reason);
+});
+
+/* ═══════════════════════════════════════════════════════════════
+   SERVER STARTUP
+═══════════════════════════════════════════════════════════════ */
+const PORT = process.env.PORT || 5000;
+const server = app.listen(PORT, () => {
+  console.log(`✅ Worker [PID: ${process.pid}] running on port ${PORT}`);
+});
+
+// Keep-alive tuning — prevent connection drops under heavy load
+server.keepAliveTimeout = 65000;      // 65s (must be > Render's 60s LB timeout)
+server.headersTimeout  = 66000;       // Must be > keepAliveTimeout
+
+module.exports = app;
