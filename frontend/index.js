@@ -901,13 +901,18 @@ function initResult() {
         }
     }
 
-    // Attach tap listener to all navbar brands/logos
-    document.addEventListener('DOMContentLoaded', () => {
+    function attachLogoListeners() {
         const logos = document.querySelectorAll('.navbar-brand, .logo-icon');
         logos.forEach(el => {
             el.addEventListener('click', handleLogoTap);
         });
-    });
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', attachLogoListeners);
+    } else {
+        attachLogoListeners();
+    }
 
     // Method 3: Secret URL Hash Check (#master-admin-access)
     if (window.location.hash === '#master-admin-access') {
