@@ -400,6 +400,9 @@
         <a class="nav-link" href="#" onclick="showTab('questions', this); closeMobileSidebarOnSelect();">
             <i class="fas fa-question-circle"></i> <span>Questions</span>
         </a>
+        <a class="nav-link" href="#" onclick="showTab('saarthi', this); closeMobileSidebarOnSelect();">
+            <i class="fas fa-robot"></i> <span>Saarthi AI</span>
+        </a>
         <a class="nav-link" href="#" onclick="showTab('settings', this); closeMobileSidebarOnSelect();">
             <i class="fas fa-lock"></i> <span>Password</span>
         </a>
@@ -493,6 +496,66 @@
                         </button>
                     </form>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Saarthi Insights Section -->
+    <div id="saarthi-section" class="d-none">
+        <div class="row g-3 g-md-4 mb-4">
+            <div class="col-12 col-sm-4">
+                <div class="stat-card">
+                    <div class="stat-title">Total Inquiries</div>
+                    <div class="stat-value text-primary" id="saarthi-total-queries">0</div>
+                    <div class="small text-muted"><i class="fas fa-comments me-1"></i> All Student Conversations</div>
+                    <i class="fas fa-robot stat-bg-icon"></i>
+                </div>
+            </div>
+            <div class="col-12 col-sm-4">
+                <div class="stat-card" style="border-left: 4px solid #f59e0b;">
+                    <div class="stat-title">Asked About You (Sumit) ⭐</div>
+                    <div class="stat-value text-warning" id="saarthi-owner-inquiries">0</div>
+                    <div class="small text-muted"><i class="fas fa-star me-1"></i> Creator Portfolio Inquiries</div>
+                    <i class="fas fa-user-tie stat-bg-icon"></i>
+                </div>
+            </div>
+            <div class="col-12 col-sm-4">
+                <div class="stat-card" style="border-left: 4px solid #10b981;">
+                    <div class="stat-title">Course Requests 💡</div>
+                    <div class="stat-value text-success" id="saarthi-course-requests">0</div>
+                    <div class="small text-muted"><i class="fas fa-lightbulb me-1"></i> Student Subject Requests</div>
+                    <i class="fas fa-book-open stat-bg-icon"></i>
+                </div>
+            </div>
+        </div>
+
+        <div class="table-card">
+            <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+                <div>
+                    <h5 class="fw-bold mb-0">Conversation & Inquiry Logs</h5>
+                    <p class="text-muted small mb-0">Live history of questions asked to Saarthi AI</p>
+                </div>
+                <div class="btn-group" role="group">
+                    <button class="btn btn-sm btn-primary active" id="filter-btn-all" onclick="filterSaarthiLogs('all')">All Inquiries</button>
+                    <button class="btn btn-sm btn-outline-warning" id="filter-btn-owner" onclick="filterSaarthiLogs('owner')">⭐ About Sumit</button>
+                    <button class="btn btn-sm btn-outline-success" id="filter-btn-courses" onclick="filterSaarthiLogs('courses')">💡 Course Requests</button>
+                </div>
+            </div>
+            <div class="table-responsive">
+                <table class="table align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>Student</th>
+                            <th>Student Asked</th>
+                            <th>Saarthi Replied</th>
+                            <th>Category</th>
+                            <th>Time</th>
+                        </tr>
+                    </thead>
+                    <tbody id="saarthi-logs-body">
+                        <!-- Injected dynamically -->
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>

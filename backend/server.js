@@ -12,6 +12,8 @@ dotenv.config();
 const Student = require("./config/Student");
 const Question = require("./Question");
 const Result = require("./Result");
+const ChatLog = require("./config/ChatLog");
+const { processSaarthiMessage } = require("./saarthiEngine");
 const connectDB = require("./config/db");
 
 const app = express();
@@ -476,6 +478,73 @@ app.get("/admin/questions", async (req, res) => {
     res.json(questions);
   } catch (err) {
     res.status(500).json({ error: "Failed to fetch questions" });
+  }
+});
+
+/* ═══════════════════════════════════════════════════════════════
+   SAARTHI (सारथी) — AI ASSISTANT & CREATOR INSIGHTS ENDPOINTS
+═══════════════════════════════════════════════════════════════ */
+
+// ── User asks Saarthi a question ───────────────────────────────
+app.post("/api/saarthi/chat", async (req, res) => {
+  try {
+    const { message, user_email, user_name, lastSuggestedCourse } = req.body;
+    if (!message || !message.trim()) {
+      return res.status(400).json({ error: "Message is required" });
+    }
+
+    const result = processSaarthiMessage(message, { lastSuggestedCourse });
+    
+    // Log asynchronously to MongoDB Atlas (keeps response instant)
+    const clientIp = req.headers["x-forwarded-for"] || req.socket.remoteAddress || "";
+    ChatLog.create({
+      user_email: user_email || "Guest Student",
+      user_name: user_name || "Guest",
+      message: message.trim(),
+      response: result.reply,
+      topic: result.topic,
+      asked_about_owner: result.askedAboutOwner || false,
+      course_requested: result.courseRequested || "",
+      language: result.language || "hinglish",
+      user_ip: String(clientIp).split(",")[0].trim()
+    }).catch(err => console.error("ChatLog Save Error:", err.message));
+
+    res.json({
+      status: "success",
+      reply: result.reply,
+      topic: result.topic,
+      askedAboutOwner: result.askedAboutOwner,
+      courseRequested: result.courseRequested,
+      lastSuggestedCourse: result.lastSuggestedCourse || ""
+    });
+  } catch (err) {
+    console.error("Saarthi Chat Error:", err);
+    res.status(500).json({ error: "Saarthi is temporarily unavailable." });
+  }
+});
+
+// ── Admin: View Saarthi Analytics, Creator Inquiries & Requests ─
+app.get("/admin/saarthi/logs", async (req, res) => {
+  try {
+    const [totalQueries, ownerInquiries, courseRequests, recentLogs] = await Promise.all([
+      ChatLog.countDocuments(),
+      ChatLog.countDocuments({ asked_about_owner: true }),
+      ChatLog.countDocuments({ course_requested: { $ne: "" } }),
+      ChatLog.find().sort({ createdAt: -1 }).limit(100).lean()
+    ]);
+
+    res.json({
+      status: "success",
+      stats: {
+        totalQueries,
+        ownerInquiries,
+        courseRequests
+      },
+      logs: recentLogs
+    });
+  } catch (err) {
+    console.error("Fetch Saarthi Logs Error:", err);
+    res.status(500).json({ error: "Failed to fetch logs" });
   }
 });
 

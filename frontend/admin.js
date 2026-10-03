@@ -96,17 +96,25 @@ function showTab(tab, el) {
         'users': 'Student Directory',
         'results': 'Exam Results',
         'questions': 'Question Bank (Top 100)',
+        'saarthi': 'Saarthi AI Insights & Student Inquiries',
         'settings': 'Admin Settings'
     };
-    document.getElementById('tab-title').innerText = titles[tab];
+    document.getElementById('tab-title').innerText = titles[tab] || 'Admin Dashboard';
 
     // Toggle Sections
     if (tab === 'settings') {
         document.getElementById('data-section').classList.add('d-none');
+        document.getElementById('saarthi-section').classList.add('d-none');
         document.getElementById('settings-section').classList.remove('d-none');
+    } else if (tab === 'saarthi') {
+        document.getElementById('data-section').classList.add('d-none');
+        document.getElementById('settings-section').classList.add('d-none');
+        document.getElementById('saarthi-section').classList.remove('d-none');
+        loadSaarthiLogs();
     } else {
         document.getElementById('data-section').classList.remove('d-none');
         document.getElementById('settings-section').classList.add('d-none');
+        document.getElementById('saarthi-section').classList.add('d-none');
         loadData();
     }
 }
@@ -258,4 +266,153 @@ function openImageModal(imgSrc, name) {
     `;
 
     document.body.appendChild(modal);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   SAARTHI AI — LOGS & CREATOR INSIGHTS IN ADMIN DASHBOARD
+═══════════════════════════════════════════════════════════════ */
+
+let saarthiLogsCache = [];
+let saarthiActiveFilter = 'all';
+
+function escapeSaarthiText(str) {
+    if (!str) return '';
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+}
+
+async function loadSaarthiLogs() {
+    const tbody = document.getElementById('saarthi-logs-body');
+    const totalEl = document.getElementById('saarthi-total-queries');
+    const ownerEl = document.getElementById('saarthi-owner-inquiries');
+    const courseEl = document.getElementById('saarthi-course-requests');
+
+    if (tbody) {
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center py-5"><div class="spinner-border text-primary"></div><div class="small text-muted mt-2">Loading Saarthi AI logs...</div></td></tr>';
+    }
+
+    try {
+        const res = await fetch(`${window.API_URL}/admin/saarthi/logs`);
+        const data = await res.json();
+
+        if (data.status === 'success') {
+            if (totalEl) totalEl.innerText = data.stats.totalQueries || 0;
+            if (ownerEl) ownerEl.innerText = data.stats.ownerInquiries || 0;
+            if (courseEl) courseEl.innerText = data.stats.courseRequests || 0;
+
+            saarthiLogsCache = Array.isArray(data.logs) ? data.logs : [];
+            filterSaarthiLogs(saarthiActiveFilter);
+        } else {
+            if (tbody) tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-danger">Failed to fetch logs.</td></tr>';
+        }
+    } catch (err) {
+        console.error('Saarthi Logs Fetch Error:', err);
+        if (tbody) tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-danger">Server connection error while loading Saarthi logs.</td></tr>';
+    }
+}
+
+function filterSaarthiLogs(filterType) {
+    saarthiActiveFilter = filterType;
+
+    // Update filter button styling
+    const allBtn = document.getElementById('filter-btn-all');
+    const ownerBtn = document.getElementById('filter-btn-owner');
+    const courseBtn = document.getElementById('filter-btn-courses');
+
+    if (allBtn) {
+        allBtn.className = filterType === 'all' ? 'btn btn-sm btn-primary active' : 'btn btn-sm btn-outline-primary';
+    }
+    if (ownerBtn) {
+        ownerBtn.className = filterType === 'owner' ? 'btn btn-sm btn-warning text-dark active' : 'btn btn-sm btn-outline-warning';
+    }
+    if (courseBtn) {
+        courseBtn.className = filterType === 'courses' ? 'btn btn-sm btn-success active' : 'btn btn-sm btn-outline-success';
+    }
+
+    let filtered = saarthiLogsCache;
+    if (filterType === 'owner') {
+        filtered = saarthiLogsCache.filter(l => l.asked_about_owner === true);
+    } else if (filterType === 'courses') {
+        filtered = saarthiLogsCache.filter(l => Boolean(l.course_requested && l.course_requested.trim()));
+    }
+
+    renderSaarthiLogsTable(filtered);
+}
+
+function renderSaarthiLogsTable(logs) {
+    const tbody = document.getElementById('saarthi-logs-body');
+    if (!tbody) return;
+
+    if (!logs || logs.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="5" class="text-center py-5">
+                    <i class="fas fa-comment-slash text-muted fa-2x mb-2 d-block"></i>
+                    <div class="text-muted">No conversation records match this filter.</div>
+                </td>
+            </tr>
+        `;
+        return;
+    }
+
+    tbody.innerHTML = logs.map(log => {
+        let categoryBadge = '';
+        if (log.asked_about_owner) {
+            categoryBadge = '<span class="badge bg-warning text-dark px-2 py-1"><i class="fas fa-star me-1"></i>About Sumit</span>';
+        } else if (log.course_requested) {
+            categoryBadge = `<span class="badge bg-success px-2 py-1"><i class="fas fa-lightbulb me-1"></i>${escapeSaarthiText(log.course_requested)}</span>`;
+        } else if (log.topic === 'guide') {
+            categoryBadge = '<span class="badge bg-info text-white px-2 py-1"><i class="fas fa-compass me-1"></i>Guide</span>';
+        } else if (log.topic === 'subject') {
+            categoryBadge = '<span class="badge bg-primary px-2 py-1"><i class="fas fa-book me-1"></i>Subject</span>';
+        } else {
+            categoryBadge = `<span class="badge bg-secondary px-2 py-1">${escapeSaarthiText(log.topic || 'General')}</span>`;
+        }
+
+        const langBadge = log.language 
+            ? `<span class="badge bg-light text-muted border ms-1" style="font-size: 0.72rem;">${escapeSaarthiText(log.language)}</span>`
+            : '';
+
+        const dateStr = log.createdAt 
+            ? new Date(log.createdAt).toLocaleString('en-IN', { dateStyle: 'short', timeStyle: 'short' })
+            : 'N/A';
+
+        return `
+            <tr>
+                <td>
+                    <div class="d-flex align-items-center">
+                        <div class="user-avatar" style="background: linear-gradient(135deg, #6366f1, #a855f7); width: 34px; height: 34px; font-size: 0.85rem;">
+                            ${(log.user_name || 'S').charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                            <div class="fw-bold text-dark">${escapeSaarthiText(log.user_name || 'Guest Student')}</div>
+                            <div class="small text-muted">${escapeSaarthiText(log.user_email || 'No email')}</div>
+                        </div>
+                    </div>
+                </td>
+                <td>
+                    <div style="max-width: 250px; font-weight: 500; color: #1e293b; word-break: break-word;">
+                        ${escapeSaarthiText(log.message)}
+                    </div>
+                </td>
+                <td>
+                    <div style="max-width: 320px; max-height: 75px; overflow-y: auto; font-size: 0.82rem; color: #475569; word-break: break-word; line-height: 1.4;">
+                        ${escapeSaarthiText(log.response)}
+                    </div>
+                </td>
+                <td>
+                    <div class="d-flex align-items-center flex-wrap gap-1">
+                        ${categoryBadge}
+                        ${langBadge}
+                    </div>
+                </td>
+                <td>
+                    <div class="small text-muted" style="white-space: nowrap;">
+                        <i class="far fa-clock me-1"></i>${dateStr}
+                    </div>
+                </td>
+            </tr>
+        `;
+    }).join('');
 }
