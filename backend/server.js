@@ -1,13 +1,19 @@
+const path = require("path");
+const dotenv = require("dotenv");
+dotenv.config({ path: path.join(__dirname, ".env") });
+dotenv.config(); // fallback to root .env if present
+
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
-const dotenv = require("dotenv");
 const compression = require("compression");
 const rateLimit = require("express-rate-limit");
 const helmet = require("helmet");
 const os = require("os");
+const jwt = require("jsonwebtoken");
+const bcrypt = require("bcryptjs");
 
-dotenv.config();
+const ADMIN_JWT_SECRET = process.env.ADMIN_JWT_SECRET || "examportal_admin_jwt_secret_sumit2026_secure";
 
 const Student = require("./config/Student");
 const Question = require("./Question");
@@ -18,38 +24,57 @@ const connectDB = require("./config/db");
 
 const app = express();
 
-/* ═══════════════════════════════════════════════════════════════
-   1. SECURITY — Helmet (HTTP security headers)
-═══════════════════════════════════════════════════════════════ */
+// ── Admin Authentication Middleware ───────────────────────────────────────
+const authenticateAdmin = (req, res, next) => {
+  const authHeader = req.headers["authorization"] || req.headers["Authorization"];
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return res.status(401).json({ error: "Access Denied: Missing or malformed admin token." });
+  }
+  const token = authHeader.split(" ")[1];
+  try {
+    const decoded = jwt.verify(token, ADMIN_JWT_SECRET);
+    if (!decoded || decoded.role !== "admin") {
+      return res.status(403).json({ error: "Forbidden: Admin privileges required." });
+    }
+    req.admin = decoded;
+    next();
+  } catch (err) {
+    return res.status(401).json({ error: "Session expired or invalid token. Please log in again." });
+  }
+};
+
+
+  //  1. SECURITY — Helmet (HTTP security headers)
+
 app.use(helmet({ crossOriginResourcePolicy: false }));
 
-/* ═══════════════════════════════════════════════════════════════
-   2. COMPRESSION — Gzip all responses (saves 60-80% bandwidth)
-═══════════════════════════════════════════════════════════════ */
+
+  //  2. COMPRESSION — Gzip all responses (saves 60-80% bandwidth)
+
 app.use(compression({ level: 6, threshold: 1024 }));
 
-/* ═══════════════════════════════════════════════════════════════
-   3. CORS — Open for all origins (production CDN-friendly)
-═══════════════════════════════════════════════════════════════ */
+
+  //  3. CORS — Open for all origins (production CDN-friendly)
+
 app.use(cors({
   origin: "*",
   methods: ["GET", "POST", "DELETE", "PUT"],
   credentials: true
 }));
 
-/* ═══════════════════════════════════════════════════════════════
-   4. BODY PARSER — Limit payload size to prevent abuse
-═══════════════════════════════════════════════════════════════ */
+
+  //  4. BODY PARSER — Limit payload size to prevent abuse
+
 app.use(express.json({ limit: "5mb" }));
 app.use(express.urlencoded({ extended: false, limit: "5mb" }));
 
-/* ═══════════════════════════════════════════════════════════════
-   5. TRUST PROXY — Needed for rate limiting behind Render/Nginx
-═══════════════════════════════════════════════════════════════ */
+
+  //  5. TRUST PROXY — Needed for rate limiting behind Render/Nginx
+
 app.set("trust proxy", 1);
 
 /* ═══════════════════════════════════════════════════════════════
-   6. RATE LIMITING — DDoS protection per IP
+  //  6. RATE LIMITING — DDoS protection per IP
 ═══════════════════════════════════════════════════════════════ */
 
 // General API: 300 requests per minute per IP
@@ -166,12 +191,22 @@ app.post("/register", async (req, res) => {
     if (!full_name || !email || !password || !course)
       return res.status(400).json({ error: "All fields are required" });
 
-    const existing = await Student.findOne({ email }).lean();
+    const normalizedEmail = String(email).trim().toLowerCase();
+    const existing = await Student.findOne({ email: normalizedEmail }).lean();
     if (existing) return res.status(400).json({ error: "Email already exists" });
 
-    const newStudent = new Student({ full_name, email, password, course });
+    const hashedPassword = await bcrypt.hash(String(password).trim(), 10);
+    const newStudent = new Student({
+      full_name: String(full_name).trim(),
+      email: normalizedEmail,
+      password: hashedPassword,
+      course: String(course).trim()
+    });
     await newStudent.save();
-    res.json({ status: "success", user: newStudent });
+
+    const safeUser = newStudent.toObject();
+    delete safeUser.password;
+    res.json({ status: "success", user: safeUser });
   } catch (err) {
     console.error("Register Error:", err);
     res.status(500).json({ error: "Internal Server Error" });
@@ -180,11 +215,35 @@ app.post("/register", async (req, res) => {
 
 // ── Login ───────────────────────────────────────────────────────
 app.post("/login", async (req, res) => {
-  const { email, password } = req.body;
   try {
-    const user = await Student.findOne({ email, password }).lean();
-    if (user) {
-      res.json({ status: "success", user });
+    const { email, password } = req.body;
+    if (!email || !password) {
+      return res.status(400).json({ error: "Email and password are required" });
+    }
+
+    const normalizedEmail = String(email).trim().toLowerCase();
+    const user = await Student.findOne({ email: normalizedEmail });
+    if (!user) {
+      return res.status(401).json({ error: "Invalid credentials" });
+    }
+
+    let isMatch = false;
+    const rawPass = String(password).trim();
+    if (user.password && (user.password.startsWith("$2a$") || user.password.startsWith("$2b$"))) {
+      isMatch = await bcrypt.compare(rawPass, user.password);
+    } else {
+      isMatch = (user.password === rawPass);
+      if (isMatch) {
+        // Transparently upgrade legacy plain-text password to bcrypt hash
+        user.password = await bcrypt.hash(rawPass, 10);
+        await user.save();
+      }
+    }
+
+    if (isMatch) {
+      const safeUser = user.toObject();
+      delete safeUser.password;
+      res.json({ status: "success", user: safeUser });
     } else {
       res.status(401).json({ error: "Invalid credentials" });
     }
@@ -255,18 +314,24 @@ app.post("/update-profile", async (req, res) => {
     const { email, full_name, profile_img, password } = req.body;
     if (!email) return res.status(400).json({ error: "Email is required" });
 
+    const normalizedEmail = String(email).trim().toLowerCase();
     const updateFields = {};
     if (full_name && full_name.trim()) updateFields.full_name = full_name.trim();
     if (profile_img !== undefined) updateFields.profile_img = profile_img;
-    if (password && password.trim()) updateFields.password = password.trim();
+    if (password && password.trim()) {
+      updateFields.password = await bcrypt.hash(password.trim(), 10);
+    }
 
     const updatedUser = await Student.findOneAndUpdate(
-      { email },
+      { email: normalizedEmail },
       { $set: updateFields },
       { new: true }
-    ).lean();
+    ).select("-password -__v").lean();
 
     if (!updatedUser) return res.status(404).json({ error: "Student not found" });
+
+    // Invalidate users cache on profile update
+    adminCache.invalidate("all-users");
 
     res.json({ status: "success", user: updatedUser });
   } catch (err) {
@@ -354,42 +419,30 @@ app.get("/get-result", async (req, res) => {
   }
 });
 
-// ── Update Profile ──────────────────────────────────────────────
-app.post("/update-profile", async (req, res) => {
-  try {
-    const { email, full_name, password, profile_img } = req.body;
-    if (!email) return res.status(400).json({ error: "Email required" });
-
-    const update = {};
-    if (full_name) update.full_name = full_name;
-    if (password)  update.password  = password;
-    if (profile_img) update.profile_img = profile_img;
-
-    const user = await Student.findOneAndUpdate({ email }, update, { new: true }).lean();
-    if (!user) return res.status(404).json({ error: "User not found" });
-
-    // Invalidate users cache
-    adminCache.invalidate("all-users");
-    res.json({ status: "success", user });
-  } catch (err) {
-    res.status(500).json({ error: "Update failed" });
-  }
-});
-
 /* ═══════════════════════════════════════════════════════════════
-   ADMIN ROUTES
+   ADMIN ROUTES (PROTECTED VIA JWT TOKEN)
 ═══════════════════════════════════════════════════════════════ */
 
 // ── Admin Login ─────────────────────────────────────────────────
 app.post("/admin/login", async (req, res) => {
   try {
     const { password } = req.body;
+    if (!password) {
+      return res.status(400).json({ error: "Password is required" });
+    }
+
     const cached = adminCache.get("admin-settings");
     const admin = cached || await AdminSettings.findOne().lean();
     if (!cached && admin) adminCache.set("admin-settings", admin, 5 * 60 * 1000);
 
     if (admin && admin.password === password) {
-      res.json({ status: "success" });
+      // Generate signed JWT token valid for 12 hours
+      const token = jwt.sign(
+        { role: "admin", timestamp: Date.now() },
+        ADMIN_JWT_SECRET,
+        { expiresIn: "12h" }
+      );
+      res.json({ status: "success", token });
     } else {
       res.status(401).json({ error: "Invalid admin password" });
     }
@@ -398,8 +451,8 @@ app.post("/admin/login", async (req, res) => {
   }
 });
 
-// ── Update Admin Password ───────────────────────────────────────
-app.post("/admin/update-password", async (req, res) => {
+// ── Update Admin Password (Protected) ───────────────────────────
+app.post("/admin/update-password", authenticateAdmin, async (req, res) => {
   try {
     const { newPassword } = req.body;
     if (!newPassword || newPassword.length < 6)
@@ -417,8 +470,8 @@ app.post("/admin/update-password", async (req, res) => {
   }
 });
 
-// ── Get All Users (Cached) ──────────────────────────────────────
-app.get("/admin/users", async (req, res) => {
+// ── Get All Users (Protected, Cached) ───────────────────────────
+app.get("/admin/users", authenticateAdmin, async (req, res) => {
   try {
     const cached = adminCache.get("all-users");
     if (cached) return res.json(cached);
@@ -431,8 +484,8 @@ app.get("/admin/users", async (req, res) => {
   }
 });
 
-// ── Delete User ─────────────────────────────────────────────────
-app.delete("/admin/users/:id", async (req, res) => {
+// ── Delete User (Protected) ─────────────────────────────────────
+app.delete("/admin/users/:id", authenticateAdmin, async (req, res) => {
   try {
     await Student.findByIdAndDelete(req.params.id);
     adminCache.invalidate("all-users");
@@ -442,8 +495,8 @@ app.delete("/admin/users/:id", async (req, res) => {
   }
 });
 
-// ── Get All Results (Cached) ────────────────────────────────────
-app.get("/admin/results", async (req, res) => {
+// ── Get All Results (Protected, Cached) ─────────────────────────
+app.get("/admin/results", authenticateAdmin, async (req, res) => {
   try {
     const cached = adminCache.get("all-results");
     if (cached) return res.json(cached);
@@ -456,8 +509,8 @@ app.get("/admin/results", async (req, res) => {
   }
 });
 
-// ── Delete Result ───────────────────────────────────────────────
-app.delete("/admin/results/:id", async (req, res) => {
+// ── Delete Result (Protected) ───────────────────────────────────
+app.delete("/admin/results/:id", authenticateAdmin, async (req, res) => {
   try {
     await Result.findByIdAndDelete(req.params.id);
     adminCache.invalidate("all-results");
@@ -467,8 +520,8 @@ app.delete("/admin/results/:id", async (req, res) => {
   }
 });
 
-// ── Get Questions (Admin, Cached) ───────────────────────────────
-app.get("/admin/questions", async (req, res) => {
+// ── Get Questions (Admin, Protected, Cached) ────────────────────
+app.get("/admin/questions", authenticateAdmin, async (req, res) => {
   try {
     const cached = adminCache.get("admin-questions");
     if (cached) return res.json(cached);
@@ -527,8 +580,8 @@ app.post("/api/saarthi/chat", async (req, res) => {
   }
 });
 
-// ── Admin: View Saarthi Analytics, Creator Inquiries & Requests ─
-app.get("/admin/saarthi/logs", async (req, res) => {
+// ── Admin: View Saarthi Analytics, Creator Inquiries & Requests (Protected) ─
+app.get("/admin/saarthi/logs", authenticateAdmin, async (req, res) => {
   try {
     const [totalQueries, ownerInquiries, courseRequests, recentLogs] = await Promise.all([
       ChatLog.countDocuments(),

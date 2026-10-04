@@ -1,9 +1,5 @@
-/**
- * ╔══════════════════════════════════════════════════════════════╗
- * ║   SAARTHI (सारथी) — AI Academic Assistant Engine             ║
- * ║   Multi-lingual, Context-Aware, Knowledge & Feedback Agent   ║
- * ╚══════════════════════════════════════════════════════════════╝
- */
+// SAARTHI (सारथी) — AI Academic Assistant Engine.
+
 
 const LearnedKnowledge = require("./config/LearnedKnowledge");
 

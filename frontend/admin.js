@@ -7,6 +7,55 @@ let currentTab = 'users';
     }
 })();
 
+// SECURE ADMIN API CALL HELPER (Includes JWT Bearer Token)
+async function adminFetch(endpoint, options = {}) {
+    const token = sessionStorage.getItem("admin_jwt_token");
+    const headers = {
+        "Content-Type": "application/json",
+        ...(options.headers || {}),
+        ...(token ? { "Authorization": `Bearer ${token}` } : {})
+    };
+
+    const url = endpoint.startsWith("http") ? endpoint : `${window.API_URL}${endpoint}`;
+    const res = await fetch(url, { ...options, headers });
+
+    if (res.status === 401 || res.status === 403) {
+        sessionStorage.removeItem("admin_jwt_token");
+        alert("Admin session expired or unauthorized. Please log in again.");
+        location.reload();
+        throw new Error("Unauthorized");
+    }
+
+    return res;
+}
+
+// UNLOCK DASHBOARD
+function unlockDashboard() {
+    const overlay = document.getElementById("login-overlay");
+    const sidebar = document.getElementById("admin-sidebar");
+    const main = document.getElementById("admin-main");
+    if (overlay) overlay.classList.add("d-none");
+    if (sidebar) sidebar.classList.remove("d-none");
+    if (main) main.classList.remove("d-none");
+    loadData();
+    setupPasswordUpdate();
+}
+
+// LOGOUT ADMIN
+function logoutAdmin() {
+    sessionStorage.removeItem("admin_jwt_token");
+    sessionStorage.removeItem("adminAuthActive");
+    location.replace("index.html");
+}
+
+// AUTO-UNLOCK ON LOAD IF VALID TOKEN EXISTS
+document.addEventListener("DOMContentLoaded", () => {
+    const token = sessionStorage.getItem("admin_jwt_token");
+    if (token) {
+        unlockDashboard();
+    }
+});
+
 // VERIFY ADMIN LOGIN WITH BACKEND
 async function checkAdminLogin() {
     const passInput = document.getElementById("admin-pass-input");
@@ -32,12 +81,10 @@ async function checkAdminLogin() {
         
         const data = await res.json();
         
-        if (data.status === "success") {
-            document.getElementById("login-overlay").classList.add("d-none");
-            document.getElementById("admin-sidebar").classList.remove("d-none");
-            document.getElementById("admin-main").classList.remove("d-none");
-            loadData();
-            setupPasswordUpdate(); // Initialize form listener
+        if (data.status === "success" && data.token) {
+            // Securely store JWT token in sessionStorage
+            sessionStorage.setItem("admin_jwt_token", data.token);
+            unlockDashboard();
         } else {
             alert(data.error || "Incorrect Admin Password!");
             if (passInput) passInput.focus();
@@ -63,15 +110,14 @@ function setupPasswordUpdate() {
             if (!confirm("Are you sure you want to change the admin password?")) return;
 
             try {
-                const res = await fetch(`${window.API_URL}/admin/update-password`, {
+                const res = await adminFetch("/admin/update-password", {
                     method: "POST",
-                    headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ newPassword })
                 });
                 const data = await res.json();
                 if (data.status === "success") {
-                    alert("Admin Password Updated Successfully!");
-                    location.reload(); // Force re-login
+                    alert("Admin Password Updated Successfully! Please log in again.");
+                    logoutAdmin();
                 }
             } catch (err) {
                 alert("Update failed!");
@@ -130,10 +176,10 @@ async function loadData() {
     tableBody.innerHTML = '<tr><td colspan="5" class="text-center py-5"><div class="spinner-border text-primary"></div></td></tr>';
 
     try {
-        // Fetch users and results in parallel for 2x faster load
+        // Fetch users and results in parallel for 2x faster load with JWT token
         const [uRes, rRes] = await Promise.all([
-            fetch(`${window.API_URL}/admin/users`),
-            fetch(`${window.API_URL}/admin/results`)
+            adminFetch("/admin/users"),
+            adminFetch("/admin/results")
         ]);
         const [allUsers, allResults] = await Promise.all([
             uRes.json(),
@@ -190,7 +236,7 @@ async function loadData() {
             `}).join('');
 
         } else if (currentTab === 'questions') {
-            const res = await fetch(`${window.API_URL}/admin/questions`);
+            const res = await adminFetch("/admin/questions");
             const questions = await res.json();
             tableHead.innerHTML = `<tr><th>Question</th><th>Course</th><th>Correct Answer</th></tr>`;
             tableBody.innerHTML = questions.map(q => {
@@ -224,7 +270,7 @@ async function loadData() {
 async function deleteItem(type, id) {
     if (!confirm("Are you sure you want to delete this record?")) return;
     try {
-        const res = await fetch(`${window.API_URL}/admin/${type}/${id}`, { method: 'DELETE' });
+        const res = await adminFetch(`/admin/${type}/${id}`, { method: 'DELETE' });
         const data = await res.json();
         if (data.status === 'success') loadData();
     } catch (err) {
@@ -293,7 +339,7 @@ async function loadSaarthiLogs() {
     }
 
     try {
-        const res = await fetch(`${window.API_URL}/admin/saarthi/logs`);
+        const res = await adminFetch("/admin/saarthi/logs");
         const data = await res.json();
 
         if (data.status === 'success') {
