@@ -56,13 +56,31 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 });
 
+// TOGGLE ADMIN PASSWORD VISIBILITY
+function toggleAdminPassVisibility() {
+    const input = document.getElementById("admin-pass-input");
+    const icon = document.getElementById("toggle-pass-icon");
+    if (!input) return;
+    if (input.type === "password") {
+        input.type = "text";
+        if (icon) icon.className = "fas fa-eye-slash";
+    } else {
+        input.type = "password";
+        if (icon) icon.className = "fas fa-eye";
+    }
+}
+
 // VERIFY ADMIN LOGIN WITH BACKEND
 async function checkAdminLogin() {
     const passInput = document.getElementById("admin-pass-input");
-    const password = passInput ? passInput.value.trim() : "";
+    let password = passInput ? passInput.value.trim() : "";
     if (!password) {
         alert("Please enter the admin password.");
         return;
+    }
+    // Strip accidental surrounding quotes if user entered 'admin@2004'
+    if ((password.startsWith("'") && password.endsWith("'")) || (password.startsWith('"') && password.endsWith('"'))) {
+        password = password.slice(1, -1).trim();
     }
     
     const btn = document.querySelector("#login-overlay button");

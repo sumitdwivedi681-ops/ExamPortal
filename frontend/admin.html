@@ -392,7 +392,12 @@
         <form onsubmit="event.preventDefault(); checkAdminLogin();">
             <div class="mb-3 text-start">
                 <label class="form-label small fw-bold text-muted" style="letter-spacing: 0.5px;">MASTER PASSWORD</label>
-                <input type="password" id="admin-pass-input" class="form-control form-control-lg rounded-3 border" placeholder="••••••••" style="background: #f8fafc; font-size: 1.1rem; height: 50px;" autofocus required>
+                <div class="input-group">
+                    <input type="password" id="admin-pass-input" class="form-control form-control-lg rounded-start-3 border" placeholder="••••••••" style="background: #f8fafc; font-size: 1.1rem; height: 50px;" autofocus required>
+                    <button class="btn btn-outline-secondary rounded-end-3 px-3" type="button" onclick="toggleAdminPassVisibility()" title="Show/Hide Password" style="border-color: #dee2e6; background: #f8fafc;">
+                        <i class="fas fa-eye" id="toggle-pass-icon"></i>
+                    </button>
+                </div>
             </div>
             
             <button type="submit" class="btn btn-primary btn-lg w-100 rounded-3 mb-3 fw-bold" style="height: 50px; background: linear-gradient(135deg, #002b5c 0%, #004aad 100%); border: none;">
@@ -781,7 +786,7 @@
     }
 </script>
 
-<script src="config.js?v=2.2"></script>
-<script src="admin.js?v=2.2"></script>
+<script src="config.js?v=2.3"></script>
+<script src="admin.js?v=2.3"></script>
 </body>
 </html>
