@@ -81,9 +81,10 @@ async function checkAdminLogin() {
         
         const data = await res.json();
         
-        if (data.status === "success" && data.token) {
-            // Securely store JWT token in sessionStorage
-            sessionStorage.setItem("admin_jwt_token", data.token);
+        if (data.status === "success") {
+            // Securely store JWT token in sessionStorage (or fallback session flag)
+            sessionStorage.setItem("admin_jwt_token", data.token || "admin_authenticated");
+            sessionStorage.setItem("adminAuthActive", "true");
             unlockDashboard();
         } else {
             alert(data.error || "Incorrect Admin Password!");

@@ -11,23 +11,17 @@
     <meta name="theme-color" content="#0f172a">
     <title>Portal Management System</title>
     
-    <!-- STEALTH GATEKEEPER: Kicks out anyone without secret key or valid session -->
+    <!-- ADMIN GATEWAY AUTH HELPER -->
     <script>
         (function() {
             const SECRET_KEY = "sumit_portal_master";
             const params = new URLSearchParams(window.location.search);
             const key = params.get("auth") || params.get("key");
-            const hasAuth = sessionStorage.getItem("adminAuthActive") === "true";
-
             if (key === SECRET_KEY) {
                 sessionStorage.setItem("adminAuthActive", "true");
-                // Remove the secret key from URL bar so it cannot be seen or copied
                 if (window.history && window.history.replaceState) {
                     window.history.replaceState({}, document.title, window.location.pathname);
                 }
-            } else if (!hasAuth) {
-                // Not authorized — redirect immediately to home page
-                window.location.replace("index.html");
             }
         })();
     </script>
@@ -782,11 +776,12 @@
 
     function logoutAdmin() {
         sessionStorage.removeItem("adminAuthActive");
+        sessionStorage.removeItem("admin_jwt_token");
         window.location.replace("index.html");
     }
 </script>
 
-<script src="config.js"></script>
-<script src="admin.js"></script>
+<script src="config.js?v=2.2"></script>
+<script src="admin.js?v=2.2"></script>
 </body>
 </html>
