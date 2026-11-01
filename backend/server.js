@@ -161,7 +161,7 @@ connectDB();
 
 /*9. MODELS & ADMIN INIT*/
 const AdminSchema = new mongoose.Schema({
-  password: { type: String, default: "Admin@123" }
+  password: { type: String, default: "admin@2004" }
 });
 const AdminSettings = mongoose.model("AdminSettings", AdminSchema);
 
@@ -169,11 +169,11 @@ async function initAdmin() {
   try {
     const admin = await AdminSettings.findOne().lean();
     if (!admin) {
-      await new AdminSettings({ password: "Admin@123" }).save();
-      console.log("Admin password initialized to: Admin@123");
-    } else if (admin.password === "admin" || admin.password === "admin123") {
-      await AdminSettings.updateOne({}, { password: "Admin@123" });
-      console.log("Admin password migrated to: Admin@123");
+      await new AdminSettings({ password: "admin@2004" }).save();
+      console.log("Admin password initialized to: admin@2004");
+    } else if (admin.password === "admin" || admin.password === "admin123" || admin.password === "Admin@123") {
+      await AdminSettings.updateOne({}, { password: "admin@2004" });
+      console.log("Admin password migrated to: admin@2004");
     }
   } catch (err) {
     console.error("Failed to init admin:", err.message);
