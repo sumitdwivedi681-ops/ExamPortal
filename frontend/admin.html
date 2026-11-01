@@ -349,6 +349,36 @@
             #tab-title { font-size: 1.4rem; }
             .table thead th, .table tbody td { padding: 12px 10px; }
         }
+
+        /* Admin Modal Overlays */
+        .admin-modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.75);
+            backdrop-filter: blur(5px);
+            z-index: 2500;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            overflow-y: auto;
+        }
+        .admin-modal-card {
+            background: white;
+            border-radius: 24px;
+            max-width: 680px;
+            width: 100%;
+            padding: 30px;
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.3);
+            position: relative;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        .admin-modal-card.wide {
+            max-width: 840px;
+        }
+        .btn-edit { background: #e0e7ff; color: #4338ca; }
+        .btn-edit:hover { background: #4338ca; color: white; }
     </style>
 </head>
 <body>
@@ -467,6 +497,44 @@
 
     <!-- Data Section (Tables) -->
     <div class="table-card" id="data-section">
+        <!-- Questions Management Toolbar (Shown only on Questions tab) -->
+        <div id="questions-toolbar" class="d-none mb-3">
+            <div class="row g-2 align-items-center">
+                <div class="col-12 col-sm-6 col-md-3">
+                    <div class="input-group">
+                        <span class="input-group-text bg-white"><i class="fas fa-book text-muted"></i></span>
+                        <select id="q-filter-course" class="form-select border-start-0" onchange="filterQuestionsByCourse(this.value)">
+                            <option value="all">All Courses / Subjects</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="col-12 col-sm-6 col-md-4">
+                    <div class="input-group">
+                        <span class="input-group-text bg-white"><i class="fas fa-search text-muted"></i></span>
+                        <input type="text" id="q-search-input" class="form-control border-start-0" placeholder="Search questions..." onkeydown="if(event.key==='Enter') searchQuestions()">
+                        <button class="btn btn-outline-primary" onclick="searchQuestions()"><i class="fas fa-arrow-right"></i></button>
+                    </div>
+                </div>
+                <div class="col-12 col-md-5 d-flex gap-2 justify-content-md-end flex-wrap">
+                    <button class="btn btn-success btn-sm px-3 rounded-3 fw-bold" onclick="openAddQuestionModal()">
+                        <i class="fas fa-plus me-1"></i> Add Question
+                    </button>
+                    <button class="btn btn-primary btn-sm px-3 rounded-3 fw-bold" onclick="openBulkQuestionModal()">
+                        <i class="fas fa-bolt me-1"></i> Bulk Update (Any Format)
+                    </button>
+                    <div class="dropdown d-inline-block position-relative">
+                        <button class="btn btn-outline-secondary btn-sm px-3 rounded-3 fw-bold" type="button" onclick="toggleExportMenu()">
+                            <i class="fas fa-download me-1"></i> Export
+                        </button>
+                        <ul id="export-dropdown-menu" class="dropdown-menu dropdown-menu-end shadow" style="display: none; position: absolute; right: 0; top: 100%; z-index: 1060;">
+                            <li><a class="dropdown-item" href="javascript:void(0)" onclick="exportQuestions('csv')"><i class="fas fa-file-csv me-2 text-success"></i>Export CSV (Excel compatible)</a></li>
+                            <li><a class="dropdown-item" href="javascript:void(0)" onclick="exportQuestions('json')"><i class="fas fa-file-code me-2 text-primary"></i>Export JSON</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div class="table-responsive">
             <table class="table align-middle mb-0">
                 <thead id="table-head">
@@ -476,6 +544,20 @@
                     <!-- Data injected here -->
                 </tbody>
             </table>
+        </div>
+
+        <!-- Questions Pagination (Shown only on Questions tab) -->
+        <div id="questions-pagination" class="d-none mt-3 pt-3 border-top d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div class="small text-muted" id="q-pagination-info">Showing questions...</div>
+            <div class="d-flex align-items-center gap-2">
+                <button class="btn btn-sm btn-outline-secondary px-3" id="q-prev-btn" onclick="changeQuestionsPage(-1)">
+                    <i class="fas fa-chevron-left me-1"></i> Prev
+                </button>
+                <span class="small fw-bold px-2" id="q-page-num">Page 1 / 1</span>
+                <button class="btn btn-sm btn-outline-secondary px-3" id="q-next-btn" onclick="changeQuestionsPage(1)">
+                    Next <i class="fas fa-chevron-right ms-1"></i>
+                </button>
+            </div>
         </div>
     </div>
 
@@ -556,6 +638,126 @@
                         <!-- Injected dynamically -->
                     </tbody>
                 </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add / Edit Single Question Modal -->
+<div id="question-modal" class="admin-modal-overlay d-none">
+    <div class="admin-modal-card">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h4 class="fw-bold mb-0 text-dark"><span id="modal-q-action">Add New</span> Question</h4>
+            <button type="button" class="btn-close" onclick="closeQuestionModal()"></button>
+        </div>
+        <p class="text-muted small mb-3">Fill in the question details below. Changes are saved immediately to the database.</p>
+        
+        <form id="questionForm" onsubmit="event.preventDefault(); saveQuestionForm();">
+            <input type="hidden" id="modal-q-id" value="">
+            
+            <div class="mb-3">
+                <label class="form-label small fw-bold text-muted">COURSE / SUBJECT *</label>
+                <input type="text" id="modal-q-course" list="course-datalist" class="form-control rounded-3" placeholder="e.g. Python, Operating Systems, DSA" required>
+                <datalist id="course-datalist"></datalist>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label small fw-bold text-muted">QUESTION TITLE *</label>
+                <textarea id="modal-q-title" class="form-control rounded-3" rows="3" placeholder="Enter the complete question text..." required></textarea>
+            </div>
+
+            <div class="row g-2 mb-2">
+                <div class="col-12 col-sm-6">
+                    <label class="form-label small fw-bold text-muted">OPTION A *</label>
+                    <input type="text" id="modal-q-optA" class="form-control rounded-3" placeholder="First option" required>
+                </div>
+                <div class="col-12 col-sm-6">
+                    <label class="form-label small fw-bold text-muted">OPTION B *</label>
+                    <input type="text" id="modal-q-optB" class="form-control rounded-3" placeholder="Second option" required>
+                </div>
+            </div>
+
+            <div class="row g-2 mb-3">
+                <div class="col-12 col-sm-6">
+                    <label class="form-label small fw-bold text-muted">OPTION C</label>
+                    <input type="text" id="modal-q-optC" class="form-control rounded-3" placeholder="Third option">
+                </div>
+                <div class="col-12 col-sm-6">
+                    <label class="form-label small fw-bold text-muted">OPTION D</label>
+                    <input type="text" id="modal-q-optD" class="form-control rounded-3" placeholder="Fourth option">
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <label class="form-label small fw-bold text-muted">CORRECT ANSWER *</label>
+                <input type="text" id="modal-q-answer" class="form-control rounded-3" placeholder="Enter option letter (A, B, C, D) or exact option text" required>
+                <div class="form-text small">You can enter 'A', 'B', 'C', 'D' or the exact text of the correct option.</div>
+            </div>
+
+            <div class="d-flex justify-content-end gap-2">
+                <button type="button" class="btn btn-outline-secondary px-4 rounded-3" onclick="closeQuestionModal()">Cancel</button>
+                <button type="submit" id="modal-q-submit-btn" class="btn btn-primary px-4 rounded-3 fw-bold">
+                    <i class="fas fa-save me-1"></i> Save Question
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Bulk Update / Import Questions Modal -->
+<div id="bulk-question-modal" class="admin-modal-overlay d-none">
+    <div class="admin-modal-card wide">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <h4 class="fw-bold mb-0 text-dark"><i class="fas fa-bolt text-warning me-2"></i>Bulk Update / Import Questions</h4>
+            <button type="button" class="btn-close" onclick="closeBulkQuestionModal()"></button>
+        </div>
+        <p class="text-muted small mb-3">
+            Add or update one or more questions in MongoDB by <strong>ANY FORMAT</strong>: JSON array, CSV (comma, tab or semicolon separated). 
+            If a question matches by <code>_id</code> or <code>course + question_title</code>, it will be <strong>updated</strong>; otherwise a new question is inserted!
+        </p>
+
+        <!-- Template helpers -->
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2 p-2 bg-light rounded-3">
+            <div class="small fw-bold text-secondary">
+                <i class="fas fa-magic me-1"></i> Quick Templates:
+            </div>
+            <div class="btn-group btn-group-sm">
+                <button type="button" class="btn btn-outline-primary" onclick="loadSampleTemplate('json')">
+                    <i class="fas fa-file-code me-1"></i> Load Sample JSON
+                </button>
+                <button type="button" class="btn btn-outline-success" onclick="loadSampleTemplate('csv')">
+                    <i class="fas fa-file-csv me-1"></i> Load Sample CSV
+                </button>
+                <button type="button" class="btn btn-outline-secondary" onclick="clearBulkInput()">
+                    <i class="fas fa-eraser me-1"></i> Clear
+                </button>
+            </div>
+        </div>
+
+        <!-- File Upload Option -->
+        <div class="mb-3">
+            <label class="form-label small fw-bold text-muted mb-1">OPTION 1: UPLOAD FILE (.json or .csv)</label>
+            <input type="file" id="bulk-file-input" class="form-control rounded-3" accept=".json,.csv,.txt" onchange="handleBulkFileUpload(event)">
+        </div>
+
+        <!-- Direct Raw Text Paste -->
+        <div class="mb-3">
+            <label class="form-label small fw-bold text-muted mb-1">OPTION 2: OR PASTE DATA DIRECTLY (JSON or CSV)</label>
+            <textarea id="bulk-raw-input" class="form-control font-monospace rounded-3" rows="8" placeholder="Paste your questions in JSON format (e.g. [{ &quot;course&quot;: &quot;Python&quot;, &quot;question_title&quot;: &quot;...&quot;, &quot;optionA&quot;: &quot;...&quot;, &quot;answer&quot;: &quot;...&quot; }]) or CSV format with header row..."></textarea>
+        </div>
+
+        <!-- Feedback alert -->
+        <div id="bulk-feedback-box" class="d-none alert mb-3 small" role="alert"></div>
+
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div class="small text-muted">
+                <i class="fas fa-shield-alt text-success me-1"></i> Caches are automatically purged across Edge & Backend upon saving.
+            </div>
+            <div class="d-flex gap-2">
+                <button type="button" class="btn btn-outline-secondary px-4 rounded-3" onclick="closeBulkQuestionModal()">Cancel</button>
+                <button type="button" id="btn-process-bulk" class="btn btn-success px-4 rounded-3 fw-bold" onclick="processBulkQuestions()">
+                    <i class="fas fa-cloud-upload-alt me-1"></i> Process & Update DB
+                </button>
             </div>
         </div>
     </div>

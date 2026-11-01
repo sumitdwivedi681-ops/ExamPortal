@@ -759,34 +759,166 @@
 <!-- ====== PAGE: TEST ====== -->
 <section id="page-test" class="spa-page">
 <div class="test-container">
-    <h1 id="course-title">Loading...</h1>
-
-    <div id="test-loader">Loading questions...</div>
-
-    <div id="test-area" style="display:none">
-      <div id="question-wrap">
-        <h2 id="question-text"></h2>
-        <div id="options"></div>
-      </div>
-
-      <div class="controls">
-        <button id="prevBtn" class="test-btn">Previous</button>
-        <button id="nextBtn" class="test-btn">Next</button>
-      </div>
-
-      <button id="submitBtn" style="display:none">Submit Test</button>
+    <!-- Top Header Bar -->
+    <div class="exam-header-bar">
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+            <span id="test-course-badge" class="badge bg-primary text-white px-3 py-2 rounded-pill fw-bold" style="font-size: 0.9rem;">Course</span>
+            <h4 id="course-title" class="fw-bold mb-0 text-dark">Practice Test</h4>
+        </div>
+        <div class="d-flex align-items-center gap-3 flex-wrap">
+            <div id="exam-timer-box" class="exam-timer">
+                <i class="far fa-clock me-1"></i> <span id="exam-timer-text">20:00</span>
+            </div>
+            <button class="btn btn-outline-danger btn-sm rounded-pill px-3 fw-bold" onclick="promptSubmitTest()">
+                <i class="fas fa-paper-plane me-1"></i> Submit Test
+            </button>
+        </div>
     </div>
-  </div>
+
+    <div id="test-loader" class="py-5 text-center">Loading questions...</div>
+
+    <!-- Main Exam Workspace -->
+    <div id="test-area" style="display:none">
+        <div class="exam-body-grid">
+            <!-- Left: Question Workspace -->
+            <div class="exam-question-pane">
+                <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom flex-wrap gap-2">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="fw-bold text-dark fs-5">Question <span id="q-current-num">1</span> of <span id="q-total-num">20</span></span>
+                        <span id="q-status-badge" class="badge bg-secondary-subtle text-secondary px-2 py-1">Not Answered</span>
+                    </div>
+                    <div class="small text-muted fw-bold">
+                        <span class="text-success"><i class="fas fa-plus-circle me-1"></i>+1 Mark</span>
+                        <span class="ms-2 text-muted">0 Negative</span>
+                    </div>
+                </div>
+
+                <div id="question-wrap">
+                    <h3 id="question-text"></h3>
+                    <div id="options" class="options-container mt-3"></div>
+                </div>
+
+                <!-- Controls Bar -->
+                <div class="exam-action-bar">
+                    <div class="d-flex gap-2 flex-wrap">
+                        <button id="prevBtn" class="exam-btn btn-secondary-outline" onclick="prevQuestion()">
+                            <i class="fas fa-chevron-left me-1"></i> Previous
+                        </button>
+                        <button id="clearBtn" class="exam-btn btn-clear-outline" onclick="clearCurrentAnswer()">
+                            <i class="fas fa-eraser me-1"></i> Clear Response
+                        </button>
+                    </div>
+                    <div class="d-flex gap-2 flex-wrap justify-content-end">
+                        <button id="skipBtn" class="exam-btn btn-skip" onclick="skipQuestion()">
+                            <i class="fas fa-forward me-1"></i> Skip
+                        </button>
+                        <button id="reviewBtn" class="exam-btn btn-review" onclick="markForReview()">
+                            <i class="fas fa-bookmark me-1"></i> Mark for Review
+                        </button>
+                        <button id="nextBtn" class="exam-btn btn-save-next" onclick="saveAndNext()">
+                            <span id="nextBtnText">Save & Next</span> <i class="fas fa-chevron-right ms-1"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right: Question Palette & Navigation -->
+            <div class="exam-palette-pane">
+                <div class="palette-header mb-3">
+                    <h6 class="fw-bold text-dark mb-2"><i class="fas fa-th me-2 text-primary"></i>Question Palette</h6>
+                    <!-- Legend status counters -->
+                    <div class="palette-legend-grid">
+                        <div class="legend-item"><span class="legend-dot answered"></span> Answered (<span id="legend-answered-count">0</span>)</div>
+                        <div class="legend-item"><span class="legend-dot review"></span> Review (<span id="legend-review-count">0</span>)</div>
+                        <div class="legend-item"><span class="legend-dot skipped"></span> Skipped (<span id="legend-skipped-count">0</span>)</div>
+                        <div class="legend-item"><span class="legend-dot notvisited"></span> Not Visited (<span id="legend-notvisited-count">20</span>)</div>
+                    </div>
+                </div>
+
+                <!-- Palette Question Numbers Grid -->
+                <div class="palette-grid-wrapper mb-3">
+                    <div id="question-palette-grid" class="palette-grid">
+                        <!-- 1-20 buttons injected here -->
+                    </div>
+                </div>
+
+                <button class="btn btn-success w-100 py-2 fw-bold rounded-3 shadow-sm" onclick="promptSubmitTest()">
+                    <i class="fas fa-check-circle me-1"></i> Final Submit Exam
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Submit Confirmation Modal -->
+<div id="exam-submit-modal" class="exam-modal-backdrop d-none">
+    <div class="exam-modal-card">
+        <div class="text-center mb-3">
+            <div class="modal-icon-circle mx-auto mb-2 text-warning">
+                <i class="fas fa-question-circle fa-3x"></i>
+            </div>
+            <h4 class="fw-bold mb-1 text-dark">Submit Your Test?</h4>
+            <p class="text-muted small">Please verify your exam summary before final submission.</p>
+        </div>
+
+        <div class="exam-summary-box mb-4">
+            <div class="row g-2 text-center">
+                <div class="col-6 col-sm-3">
+                    <div class="p-2 rounded-3 bg-light border">
+                        <div class="text-muted small">Total</div>
+                        <div class="fw-bold fs-5 text-dark" id="modal-sum-total">20</div>
+                    </div>
+                </div>
+                <div class="col-6 col-sm-3">
+                    <div class="p-2 rounded-3 bg-success-subtle border border-success-subtle">
+                        <div class="text-success small fw-bold">Answered</div>
+                        <div class="fw-bold fs-5 text-success" id="modal-sum-answered">0</div>
+                    </div>
+                </div>
+                <div class="col-6 col-sm-3">
+                    <div class="p-2 rounded-3 border" style="background: #ede9fe; border-color: #ddd6fe !important;">
+                        <div class="small fw-bold" style="color: #6d28d9;">For Review</div>
+                        <div class="fw-bold fs-5" style="color: #6d28d9;" id="modal-sum-review">0</div>
+                    </div>
+                </div>
+                <div class="col-6 col-sm-3">
+                    <div class="p-2 rounded-3 border" style="background: #ffedd5; border-color: #fed7aa !important;">
+                        <div class="small fw-bold" style="color: #c2410c;">Skipped</div>
+                        <div class="fw-bold fs-5" style="color: #c2410c;" id="modal-sum-skipped">0</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="alert alert-warning small mb-4 py-2" role="alert">
+            <i class="fas fa-exclamation-triangle me-1"></i> Once submitted, you cannot change any answers!
+        </div>
+
+        <div class="d-flex justify-content-end gap-2">
+            <button type="button" class="btn btn-outline-secondary px-3 rounded-pill fw-bold" onclick="closeSubmitModal()">
+                Resume Exam
+            </button>
+            <button type="button" class="btn btn-success px-4 rounded-pill fw-bold" onclick="finalSubmitExam()">
+                Yes, Submit Now
+            </button>
+        </div>
+    </div>
+</div>
 </section>
 
 <!-- ====== PAGE: RESULT ====== -->
 <section id="page-result" class="spa-page">
 <div class="result-card">
     <h1 class="fw-bold mb-1" style="color: #0f172a;">Test Completed!</h1>
-    <p class="text-muted mb-4">Here is your performance summary</p>
+    <p class="text-muted mb-3">Here is your performance summary</p>
 
     <!-- Digital Display -->
     <div class="digital-score" id="score-display">0/20</div>
+
+    <!-- Summary breakdown badges -->
+    <div id="result-breakdown" class="d-flex justify-content-center gap-2 mb-4 flex-wrap">
+        <!-- Dynamically injected -->
+    </div>
 
     <!-- Pie Chart -->
     <div class="chart-box">

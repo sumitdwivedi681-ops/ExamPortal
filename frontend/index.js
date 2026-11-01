@@ -1,7 +1,5 @@
-// ============================================================
 //  ELITE EXAM PORTAL — UNIFIED SPA JAVASCRIPT
 //  Hash-based router + all page logic merged
-// ============================================================
 
 // Pre-warm backend & Cloudflare Worker immediately to eliminate cold-start wait
 let isPrewarming = false;
@@ -664,7 +662,10 @@ function startTest() {
 let testQuestions = [];
 let testCurrentIndex = 0;
 let testAnswers = {};
+let testStatus = {}; // { [qId]: 'notvisited' | 'visited' | 'answered' | 'skipped' | 'review' | 'review-answered' }
 let testCourse = '';
+let testTimerInterval = null;
+let testTimeRemaining = 20 * 60; // 20 minutes in seconds
 
 // Helper to fetch course questions with multi-tier caching (Session + LocalStorage + Edge Worker)
 async function fetchQuestionsWithCache(courseName) {
@@ -717,6 +718,104 @@ async function fetchQuestionsWithCache(courseName) {
     return data;
 }
 
+// ── Exam Timer Management ───────────────────────────────────────────
+function startExamTimer() {
+    stopExamTimer();
+    testTimeRemaining = 20 * 60; // 20 minutes countdown
+    updateTimerDisplay();
+
+    testTimerInterval = setInterval(() => {
+        testTimeRemaining--;
+        updateTimerDisplay();
+
+        if (testTimeRemaining <= 0) {
+            stopExamTimer();
+            alert("⏰ Time is up! Your examination will be submitted automatically.");
+            finalSubmitExam();
+        }
+    }, 1000);
+}
+
+function stopExamTimer() {
+    if (testTimerInterval) {
+        clearInterval(testTimerInterval);
+        testTimerInterval = null;
+    }
+}
+
+function updateTimerDisplay() {
+    const timerText = document.getElementById("exam-timer-text");
+    const timerBox = document.getElementById("exam-timer-box");
+    if (!timerText) return;
+
+    const mins = Math.floor(Math.max(0, testTimeRemaining) / 60);
+    const secs = Math.max(0, testTimeRemaining) % 60;
+    timerText.textContent = `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
+
+    if (timerBox) {
+        if (testTimeRemaining <= 180) { // Under 3 minutes remaining
+            timerBox.classList.add("warning");
+        } else {
+            timerBox.classList.remove("warning");
+        }
+    }
+}
+
+// ── Question Palette Helpers ─────────────────────────────────────────
+function renderQuestionPalette() {
+    const paletteGrid = document.getElementById("question-palette-grid");
+    if (!paletteGrid) return;
+
+    paletteGrid.innerHTML = testQuestions.map((q, idx) => {
+        const st = testStatus[q._id] || "notvisited";
+        const isCurrent = (idx === testCurrentIndex);
+        let stateClass = "";
+
+        if (st === "answered") stateClass = "answered";
+        else if (st === "review-answered") stateClass = "review-answered";
+        else if (st === "review") stateClass = "review";
+        else if (st === "skipped") stateClass = "skipped";
+        else if (st === "visited") stateClass = "visited";
+        else stateClass = "notvisited";
+
+        const currentClass = isCurrent ? "current" : "";
+
+        return `
+            <button class="palette-btn ${stateClass} ${currentClass}" onclick="jumpToQuestion(${idx})" title="Question ${idx + 1} (${st})">
+                ${idx + 1}
+            </button>
+        `;
+    }).join("");
+
+    updatePaletteCounts();
+}
+
+function updatePaletteCounts() {
+    let answered = 0;
+    let review = 0;
+    let skipped = 0;
+    let notvisited = 0;
+
+    testQuestions.forEach(q => {
+        const st = testStatus[q._id] || "notvisited";
+        if (st === "answered" || st === "review-answered") answered++;
+        if (st === "review" || st === "review-answered") review++;
+        if (st === "skipped") skipped++;
+        if (st === "notvisited") notvisited++;
+    });
+
+    const ansEl = document.getElementById("legend-answered-count");
+    const revEl = document.getElementById("legend-review-count");
+    const skipEl = document.getElementById("legend-skipped-count");
+    const notvisEl = document.getElementById("legend-notvisited-count");
+
+    if (ansEl) ansEl.innerText = answered;
+    if (revEl) revEl.innerText = review;
+    if (skipEl) skipEl.innerText = skipped;
+    if (notvisEl) notvisEl.innerText = notvisited;
+}
+
+// ── Test Initialization ──────────────────────────────────────────────
 async function initTest(course) {
     if (!course) { navigateTo('#subjects'); return; }
     testCourse = decodeURIComponent(course);
@@ -725,151 +824,444 @@ async function initTest(course) {
     if (!student) { alert("Login required!"); navigateTo('#home'); return; }
 
     const courseTitle = document.getElementById("course-title");
+    const courseBadge = document.getElementById("test-course-badge");
     const loader = document.getElementById("test-loader");
     const testArea = document.getElementById("test-area");
 
-    courseTitle.innerText = testCourse;
-    loader.style.display = "block";
-    loader.innerHTML = '<div class="spinner-border text-primary me-2" role="status" style="width: 1.5rem; height: 1.5rem; vertical-align: middle;"></div> Preparing test questions...';
-    testArea.style.display = "none";
+    if (courseTitle) courseTitle.innerText = `${testCourse} Practice Test`;
+    if (courseBadge) courseBadge.innerText = testCourse;
+    if (loader) {
+        loader.style.display = "block";
+        loader.innerHTML = '<div class="spinner-border text-primary me-2" role="status" style="width: 1.5rem; height: 1.5rem; vertical-align: middle;"></div> Preparing test questions...';
+    }
+    if (testArea) testArea.style.display = "none";
 
-    // Reset state
+    // Reset test states
     testQuestions = [];
     testCurrentIndex = 0;
     testAnswers = {};
+    testStatus = {};
 
     try {
         const allQuestions = await fetchQuestionsWithCache(testCourse);
 
         if (!allQuestions || !allQuestions.length) {
-            loader.innerText = "No questions found for this course!";
+            if (loader) loader.innerText = "No questions found for this course!";
             return;
         }
 
+        // Pick 20 questions randomly
         testQuestions = allQuestions.sort(() => 0.5 - Math.random()).slice(0, 20);
-        loader.style.display = "none";
-        testArea.style.display = "block";
+
+        // Initialize question statuses
+        testQuestions.forEach(q => {
+            testStatus[q._id] = "notvisited";
+        });
+
+        if (loader) loader.style.display = "none";
+        if (testArea) testArea.style.display = "block";
+
+        startExamTimer();
         loadTestQuestion();
     } catch (err) {
         console.error(err);
-        loader.innerHTML = 'Failed to load questions. <button class="btn btn-sm btn-outline-primary ms-2" onclick="initTest(testCourse)">Retry</button>';
+        if (loader) loader.innerHTML = 'Failed to load questions. <button class="btn btn-sm btn-outline-primary ms-2" onclick="initTest(testCourse)">Retry</button>';
     }
-
-    // Wire up buttons
-    document.getElementById("nextBtn").onclick = () => { saveTestAnswer(); testCurrentIndex++; loadTestQuestion(); };
-    document.getElementById("prevBtn").onclick = () => { saveTestAnswer(); testCurrentIndex--; loadTestQuestion(); };
-    document.getElementById("submitBtn").onclick = submitTest;
 }
 
+// ── Render Active Question ───────────────────────────────────────────
 function loadTestQuestion() {
+    if (!testQuestions || testQuestions.length === 0) return;
     const q = testQuestions[testCurrentIndex];
+
+    // Mark current question as visited if previously unvisited
+    if (!testStatus[q._id] || testStatus[q._id] === "notvisited") {
+        testStatus[q._id] = "visited";
+    }
+
+    const courseTitle = document.getElementById("course-title");
+    const courseBadge = document.getElementById("test-course-badge");
+    const qCurrentNum = document.getElementById("q-current-num");
+    const qTotalNum = document.getElementById("q-total-num");
+    const qStatusBadge = document.getElementById("q-status-badge");
     const questionText = document.getElementById("question-text");
     const optionsBox = document.getElementById("options");
     const prevBtn = document.getElementById("prevBtn");
-    const nextBtn = document.getElementById("nextBtn");
-    const submitBtn = document.getElementById("submitBtn");
+    const nextBtnText = document.getElementById("nextBtnText");
 
-    questionText.innerText = `${testCurrentIndex + 1}. ${q.question_title}`;
-    const selected = testAnswers[q._id];
+    if (courseTitle) courseTitle.innerText = `${testCourse} Practice Test`;
+    if (courseBadge) courseBadge.innerText = testCourse;
+    if (qCurrentNum) qCurrentNum.innerText = testCurrentIndex + 1;
+    if (qTotalNum) qTotalNum.innerText = testQuestions.length;
 
-    optionsBox.innerHTML = "";
-    ["optionA", "optionB", "optionC", "optionD"].forEach((optKey, index) => {
-        const optVal = q[optKey] || "";
-        const letter = ["A", "B", "C", "D"][index];
-        const optionDiv = document.createElement("div");
-        optionDiv.className = "option-item";
-        const label = document.createElement("label");
-        const radio = document.createElement("input");
-        radio.type = "radio"; radio.name = "option"; radio.value = optVal;
-        if (selected === optVal) radio.checked = true;
-        label.appendChild(radio);
-        label.appendChild(document.createTextNode(` ${letter}. `));
-        const span = document.createElement("span");
-        span.textContent = optVal;
-        label.appendChild(span);
-        optionDiv.appendChild(label);
-        optionsBox.appendChild(optionDiv);
+    // Status Badge
+    const st = testStatus[q._id];
+    if (qStatusBadge) {
+        if (st === "answered") {
+            qStatusBadge.className = "badge bg-success-subtle text-success border border-success-subtle px-2 py-1";
+            qStatusBadge.style.background = "";
+            qStatusBadge.style.color = "";
+            qStatusBadge.innerHTML = '<i class="fas fa-check-circle me-1"></i>Answered';
+        } else if (st === "review-answered") {
+            qStatusBadge.className = "badge px-2 py-1";
+            qStatusBadge.style.background = "#ede9fe";
+            qStatusBadge.style.color = "#6d28d9";
+            qStatusBadge.innerHTML = '<i class="fas fa-bookmark me-1"></i>Answered & Marked for Review';
+        } else if (st === "review") {
+            qStatusBadge.className = "badge px-2 py-1";
+            qStatusBadge.style.background = "#ede9fe";
+            qStatusBadge.style.color = "#6d28d9";
+            qStatusBadge.innerHTML = '<i class="fas fa-bookmark me-1"></i>Marked for Review';
+        } else if (st === "skipped") {
+            qStatusBadge.className = "badge px-2 py-1";
+            qStatusBadge.style.background = "#ffedd5";
+            qStatusBadge.style.color = "#c2410c";
+            qStatusBadge.innerHTML = '<i class="fas fa-forward me-1"></i>Skipped';
+        } else {
+            qStatusBadge.className = "badge bg-secondary-subtle text-secondary px-2 py-1";
+            qStatusBadge.style.background = "";
+            qStatusBadge.style.color = "";
+            qStatusBadge.innerHTML = '<i class="far fa-circle me-1"></i>Not Answered';
+        }
+    }
+
+    if (questionText) questionText.innerText = q.question_title;
+
+    const selectedVal = testAnswers[q._id];
+    if (optionsBox) {
+        optionsBox.innerHTML = "";
+        ["optionA", "optionB", "optionC", "optionD"].forEach((optKey, index) => {
+            const optVal = q[optKey] || "";
+            if (!optVal && index >= 2) return;
+
+            const letter = ["A", "B", "C", "D"][index];
+            const isChecked = (selectedVal === optVal);
+
+            const optDiv = document.createElement("div");
+            optDiv.className = `option-item ${isChecked ? "selected" : ""}`;
+            optDiv.onclick = (e) => {
+                const radio = optDiv.querySelector('input[type="radio"]');
+                if (radio) {
+                    radio.checked = true;
+                    saveCurrentSelection();
+                }
+            };
+
+            const label = document.createElement("label");
+            const radio = document.createElement("input");
+            radio.type = "radio";
+            radio.name = "option";
+            radio.value = optVal;
+            radio.checked = isChecked;
+            radio.onchange = () => saveCurrentSelection();
+
+            const letterSpan = document.createElement("span");
+            letterSpan.className = "option-letter";
+            letterSpan.innerText = letter;
+
+            const textSpan = document.createElement("span");
+            textSpan.textContent = optVal;
+
+            label.appendChild(radio);
+            label.appendChild(letterSpan);
+            label.appendChild(textSpan);
+            optDiv.appendChild(label);
+            optionsBox.appendChild(optDiv);
+        });
+    }
+
+    if (prevBtn) prevBtn.disabled = (testCurrentIndex === 0);
+    if (nextBtnText) {
+        nextBtnText.innerText = (testCurrentIndex === testQuestions.length - 1) ? "Save & Finish" : "Save & Next";
+    }
+
+    renderQuestionPalette();
+}
+
+// Save active selected option into answers cache
+function saveCurrentSelection() {
+    const q = testQuestions[testCurrentIndex];
+    if (!q) return;
+
+    const checkedRadio = document.querySelector('#page-test input[name="option"]:checked');
+    if (checkedRadio) {
+        testAnswers[q._id] = checkedRadio.value;
+        if (testStatus[q._id] === "review" || testStatus[q._id] === "review-answered") {
+            testStatus[q._id] = "review-answered";
+        } else {
+            testStatus[q._id] = "answered";
+        }
+
+        document.querySelectorAll('#options .option-item').forEach(item => {
+            const r = item.querySelector('input[type="radio"]');
+            if (r && r.checked) item.classList.add("selected");
+            else item.classList.remove("selected");
+        });
+    }
+
+    renderQuestionPalette();
+}
+
+// ── Question Action Controls ─────────────────────────────────────────
+
+// 1. Save & Next / Finish
+function saveAndNext() {
+    saveCurrentSelection();
+    if (testCurrentIndex < testQuestions.length - 1) {
+        testCurrentIndex++;
+        loadTestQuestion();
+    } else {
+        promptSubmitTest();
+    }
+}
+
+// 2. Skip Question
+function skipQuestion() {
+    const q = testQuestions[testCurrentIndex];
+    if (q) {
+        testStatus[q._id] = "skipped";
+        delete testAnswers[q._id];
+    }
+    if (testCurrentIndex < testQuestions.length - 1) {
+        testCurrentIndex++;
+        loadTestQuestion();
+    } else {
+        promptSubmitTest();
+    }
+}
+
+// 3. Mark for Review
+function markForReview() {
+    const q = testQuestions[testCurrentIndex];
+    if (q) {
+        const checkedRadio = document.querySelector('#page-test input[name="option"]:checked');
+        if (checkedRadio) {
+            testAnswers[q._id] = checkedRadio.value;
+            testStatus[q._id] = "review-answered";
+        } else {
+            testStatus[q._id] = "review";
+        }
+    }
+    if (testCurrentIndex < testQuestions.length - 1) {
+        testCurrentIndex++;
+        loadTestQuestion();
+    } else {
+        promptSubmitTest();
+    }
+}
+
+// 4. Clear Response
+function clearCurrentAnswer() {
+    const q = testQuestions[testCurrentIndex];
+    if (q) {
+        delete testAnswers[q._id];
+        if (testStatus[q._id] === "review-answered") {
+            testStatus[q._id] = "review";
+        } else {
+            testStatus[q._id] = "visited";
+        }
+    }
+    const radios = document.querySelectorAll('#page-test input[name="option"]');
+    radios.forEach(r => r.checked = false);
+    document.querySelectorAll('#options .option-item').forEach(item => item.classList.remove("selected"));
+    loadTestQuestion();
+}
+
+// 5. Previous Question
+function prevQuestion() {
+    saveCurrentSelection();
+    if (testCurrentIndex > 0) {
+        testCurrentIndex--;
+        loadTestQuestion();
+    }
+}
+
+// 6. Jump to Question from Palette
+function jumpToQuestion(idx) {
+    if (idx >= 0 && idx < testQuestions.length) {
+        saveCurrentSelection();
+        testCurrentIndex = idx;
+        loadTestQuestion();
+    }
+}
+
+// ── Submit Test & Confirmation Modal ─────────────────────────────────
+function promptSubmitTest() {
+    saveCurrentSelection();
+
+    let answered = 0;
+    let review = 0;
+    let skipped = 0;
+
+    testQuestions.forEach(q => {
+        const st = testStatus[q._id] || "notvisited";
+        if (st === "answered" || st === "review-answered") answered++;
+        if (st === "review" || st === "review-answered") review++;
+        if (st === "skipped") skipped++;
     });
 
-    prevBtn.disabled = testCurrentIndex === 0;
-    nextBtn.style.display = testCurrentIndex === testQuestions.length - 1 ? "none" : "inline-block";
-    submitBtn.style.display = testCurrentIndex === testQuestions.length - 1 ? "inline-block" : "none";
+    const sumTotal = document.getElementById("modal-sum-total");
+    const sumAnswered = document.getElementById("modal-sum-answered");
+    const sumReview = document.getElementById("modal-sum-review");
+    const sumSkipped = document.getElementById("modal-sum-skipped");
+
+    if (sumTotal) sumTotal.innerText = testQuestions.length;
+    if (sumAnswered) sumAnswered.innerText = answered;
+    if (sumReview) sumReview.innerText = review;
+    if (sumSkipped) sumSkipped.innerText = skipped;
+
+    const modal = document.getElementById("exam-submit-modal");
+    if (modal) modal.classList.remove("d-none");
 }
 
-function saveTestAnswer() {
-    const selected = document.querySelector('#page-test input[name="option"]:checked');
-    if (selected) testAnswers[testQuestions[testCurrentIndex]._id] = selected.value;
+function closeSubmitModal() {
+    const modal = document.getElementById("exam-submit-modal");
+    if (modal) modal.classList.add("d-none");
 }
 
-async function submitTest() {
-    saveTestAnswer();
+async function finalSubmitExam() {
+    closeSubmitModal();
+    stopExamTimer();
+
     const student = JSON.parse(localStorage.getItem("loggedUser"));
     let score = 0;
+    let answeredCount = 0;
+    let skippedCount = 0;
+    let reviewCount = 0;
 
     testQuestions.forEach(q => {
         const userSelectedText = (testAnswers[q._id] || "").trim().toLowerCase();
         const dbCorrectAnswer = (q.answer || "").trim().toLowerCase();
+        const st = testStatus[q._id] || "notvisited";
 
-        if (userSelectedText === dbCorrectAnswer) { score++; }
-        else if (dbCorrectAnswer === "a" && userSelectedText === (q.optionA || "").trim().toLowerCase()) { score++; }
-        else if (dbCorrectAnswer === "b" && userSelectedText === (q.optionB || "").trim().toLowerCase()) { score++; }
-        else if (dbCorrectAnswer === "c" && userSelectedText === (q.optionC || "").trim().toLowerCase()) { score++; }
-        else if (dbCorrectAnswer === "d" && userSelectedText === (q.optionD || "").trim().toLowerCase()) { score++; }
+        if (st === "skipped") skippedCount++;
+        if (st === "review" || st === "review-answered") reviewCount++;
+
+        if (userSelectedText) {
+            answeredCount++;
+            if (userSelectedText === dbCorrectAnswer) {
+                score++;
+            } else if (dbCorrectAnswer === "a" && userSelectedText === (q.optionA || "").trim().toLowerCase()) {
+                score++;
+            } else if (dbCorrectAnswer === "b" && userSelectedText === (q.optionB || "").trim().toLowerCase()) {
+                score++;
+            } else if (dbCorrectAnswer === "c" && userSelectedText === (q.optionC || "").trim().toLowerCase()) {
+                score++;
+            } else if (dbCorrectAnswer === "d" && userSelectedText === (q.optionD || "").trim().toLowerCase()) {
+                score++;
+            }
+        }
     });
 
-    localStorage.setItem("lastResult", JSON.stringify({ score, total: testQuestions.length }));
+    const resultPayload = {
+        score,
+        total: testQuestions.length,
+        answered: answeredCount,
+        skipped: skippedCount,
+        review: reviewCount,
+        percentage: Math.round((score / testQuestions.length) * 100)
+    };
+    localStorage.setItem("lastResult", JSON.stringify(resultPayload));
 
     try {
         const res = await fetch(`${window.API_URL}/save-result`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ email: student.email, course: testCourse, score: score, total: testQuestions.length })
+            body: JSON.stringify({
+                email: student.email,
+                course: testCourse,
+                score,
+                total: testQuestions.length
+            })
         });
         const data = await res.json();
-        if (data.status === "success") {
+        if (data && data.status === "success") {
             try { sessionStorage.removeItem(`dashboard_results_${student.email}`); } catch (e) {}
-            navigateTo('#result');
-        } else { alert("Submission failed!"); }
+        }
+        navigateTo('#result');
     } catch (err) {
         console.error("Submit Error:", err);
-        alert("Server error while submitting!");
+        navigateTo('#result');
     }
 }
 
-
-// ============= PAGE: RESULT =============
+// ── Result View ──────────────────────────────────────────────────────
 function initResult() {
+    stopExamTimer();
     const lastResult = JSON.parse(localStorage.getItem("lastResult"));
     if (!lastResult) { navigateTo('#dashboard'); return; }
 
-    const { score, total } = lastResult;
-    const wrong = total - score;
+    const { score, total, answered = score, skipped = 0 } = lastResult;
+    const incorrect = Math.max(0, total - score - skipped);
+    const percentage = Math.round((score / total) * 100);
 
-    document.getElementById("score-display").innerText = `${score}/${total}`;
+    const scoreDisplay = document.getElementById("score-display");
+    if (scoreDisplay) scoreDisplay.innerText = `${score}/${total}`;
+
+    // Render detailed breakdown pills
+    const breakdownBox = document.getElementById("result-breakdown");
+    if (breakdownBox) {
+        breakdownBox.innerHTML = `
+            <div class="breakdown-pill bg-success-subtle text-success border border-success-subtle">
+                <i class="fas fa-check-circle"></i> Correct: ${score}
+            </div>
+            <div class="breakdown-pill bg-danger-subtle text-danger border border-danger-subtle">
+                <i class="fas fa-times-circle"></i> Incorrect: ${incorrect}
+            </div>
+            ${skipped > 0 ? `
+            <div class="breakdown-pill border" style="background: #ffedd5; color: #c2410c; border-color: #fed7aa !important;">
+                <i class="fas fa-forward"></i> Skipped: ${skipped}
+            </div>` : ''}
+            <div class="breakdown-pill bg-primary-subtle text-primary border border-primary-subtle">
+                <i class="fas fa-percentage"></i> Score: ${percentage}%
+            </div>
+        `;
+    }
 
     // Destroy old chart
     if (resultChart) { resultChart.destroy(); resultChart = null; }
 
     const ctx = document.getElementById('resultChart').getContext('2d');
+    const chartData = [score, incorrect];
+    const chartLabels = ['Correct', 'Incorrect'];
+    const chartColors = ['#10b981', '#ef4444'];
+
+    if (skipped > 0) {
+        chartData.push(skipped);
+        chartLabels.push('Skipped');
+        chartColors.push('#f97316');
+    }
+
     resultChart = new Chart(ctx, {
         type: 'doughnut',
         data: {
-            labels: ['Correct', 'Incorrect'],
-            datasets: [{ data: [score, wrong], backgroundColor: ['#0ea5e9', '#f1f5f9'], borderColor: ['#fff', '#fff'], borderWidth: 2, cutout: '70%' }]
+            labels: chartLabels,
+            datasets: [{
+                data: chartData,
+                backgroundColor: chartColors,
+                borderColor: ['#fff', '#fff', '#fff'],
+                borderWidth: 2,
+                cutout: '70%'
+            }]
         },
         options: {
-            responsive: true, maintainAspectRatio: false,
-            plugins: { legend: { display: false }, tooltip: { enabled: true, callbacks: { label: (context) => ` ${context.label}: ${context.raw}` } } }
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    enabled: true,
+                    callbacks: { label: (context) => ` ${context.label}: ${context.raw}` }
+                }
+            }
         }
     });
 }
 
 
-// ============================================================
-//  STEALTH HIDDEN ADMIN GATEWAY (FOR OWNER ONLY)
+// STEALTH HIDDEN ADMIN GATEWAY (FOR OWNER ONLY)
 //  Invisible to public users — no buttons, links, or clues
-// ============================================================
-(function initStealthAdmin() {
+  (function initStealthAdmin() {
     const SECRET_KEY = "sumit_portal_master";
     function accessAdmin() {
         sessionStorage.setItem("adminAuthActive", "true");
